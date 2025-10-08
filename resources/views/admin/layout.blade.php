@@ -62,7 +62,16 @@
             <!-- Logo & Header -->
             <div class="text-center mb-3">
                 <img src="{{ asset('assets/images/logo-gaspul.png') }}" alt="Logo Gaspul" class="logo mb-2">
-                <h5 class="fw-bold">Admin GASPUL</h5>
+                <h5 class="fw-bold mb-1">Admin GASPUL</h5>
+                @auth
+                    <span class="badge 
+                        @if(Auth::user()->role === 'superadmin') bg-danger
+                        @elseif(Auth::user()->role === 'admin') bg-success
+                        @else bg-secondary @endif
+                    ">
+                        {{ ucfirst(Auth::user()->role) }}
+                    </span>
+                @endauth
             </div>
             <div class="sidebar-divider"></div>
 

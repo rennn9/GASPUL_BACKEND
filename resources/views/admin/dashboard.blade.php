@@ -15,9 +15,13 @@
                 <option value="year">Tahun Ini</option>
                 <option value="last_year">Tahun Lalu</option>
             </select>
-            <a id="pdfMasyarakat" href="{{ route('admin.pengaduan_masyarakat.pdf') }}" class="btn btn-success">
-                <i class="bi bi-file-earmark-pdf"></i> Download PDF
-            </a>
+<form method="GET" action="{{ route('admin.pengaduan_masyarakat.pdf') }}" id="formPdfMasyarakat" target="_blank">
+    <input type="hidden" name="filter" id="filterInputMasyarakat" value="all">
+    <button type="submit" class="btn btn-success">
+        <i class="bi bi-file-earmark-pdf"></i> Download PDF
+    </button>
+</form>
+
         </div>
 
         <div id="masyarakat-table-container">
@@ -38,9 +42,13 @@
                 <option value="year">Tahun Ini</option>
                 <option value="last_year">Tahun Lalu</option>
             </select>
-            <a id="pdfPelayanan" href="{{ route('admin.pengaduan_pelayanan.pdf') }}" class="btn btn-success">
-                <i class="bi bi-file-earmark-pdf"></i> Download PDF
-            </a>
+<form method="GET" action="{{ route('admin.pengaduan_pelayanan.pdf') }}" id="formPdfPelayanan" target="_blank">
+    <input type="hidden" name="filter" id="filterInputPelayanan" value="all">
+    <button type="submit" class="btn btn-success">
+        <i class="bi bi-file-earmark-pdf"></i> Download PDF
+    </button>
+</form>
+
         </div>
 
         <div id="pelayanan-table-container">
@@ -52,42 +60,32 @@
 {{-- Script untuk filter + auto-switch tab + dynamic PDF --}}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+// === Filter Masyarakat ===
+filterMasyarakat.addEventListener("change", function () {
+    const value = this.value;
 
-    // === Filter Masyarakat ===
-    const filterMasyarakat = document.getElementById("filterMasyarakat");
-    const pdfMasyarakat = document.getElementById("pdfMasyarakat");
+    fetch("{{ route('admin.filter.masyarakat') }}?filter=" + value)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById("masyarakat-table-container").innerHTML = html;
+        });
 
-    filterMasyarakat.addEventListener("change", function () {
-        const value = this.value;
+    document.getElementById("filterInputMasyarakat").value = value;
+});
 
-        // Update tabel
-        fetch("{{ route('admin.filter.masyarakat') }}?filter=" + value)
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById("masyarakat-table-container").innerHTML = html;
-            });
+// === Filter Pelayanan ===
+filterPelayanan.addEventListener("change", function () {
+    const value = this.value;
 
-        // Update link PDF sesuai filter
-        pdfMasyarakat.href = "{{ route('admin.pengaduan_masyarakat.pdf') }}?filter=" + value;
-    });
+    fetch("{{ route('admin.filter.pelayanan') }}?filter=" + value)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById("pelayanan-table-container").innerHTML = html;
+        });
 
-    // === Filter Pelayanan ===
-    const filterPelayanan = document.getElementById("filterPelayanan");
-    const pdfPelayanan = document.getElementById("pdfPelayanan");
+    document.getElementById("filterInputPelayanan").value = value;
+});
 
-    filterPelayanan.addEventListener("change", function () {
-        const value = this.value;
-
-        // Update tabel
-        fetch("{{ route('admin.filter.pelayanan') }}?filter=" + value)
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById("pelayanan-table-container").innerHTML = html;
-            });
-
-        // Update link PDF sesuai filter
-        pdfPelayanan.href = "{{ route('admin.pengaduan_pelayanan.pdf') }}?filter=" + value;
-    });
 
     // === Script Tab dari Hash (sidebar) ===
     function showTabFromHash() {

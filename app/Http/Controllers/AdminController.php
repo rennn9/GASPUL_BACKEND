@@ -37,6 +37,12 @@ class AdminController extends Controller
     // =========================
     public function exportMasyarakatPdf(Request $request)
     {
+        if (!auth()->check()) {
+            \Log::info('Export PDF dipanggil tanpa login');
+        } else {
+            \Log::info('Export PDF oleh user: ' . auth()->user()->nip);
+        }
+
         $filter = $request->get('filter', 'all');
         $query  = PengaduanMasyarakat::query();
         $query  = $this->applyFilter($query, $filter);
@@ -47,6 +53,7 @@ class AdminController extends Controller
         $pdf = \PDF::loadView('admin.exports.masyarakat_pdf', compact('pengaduanMasyarakat', 'filter', 'title'));
         return $pdf->download('pengaduan_masyarakat_' . $filter . '.pdf');
     }
+
 
     public function exportPelayananPdf(Request $request)
     {

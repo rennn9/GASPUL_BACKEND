@@ -3,16 +3,17 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    // 🔹 Tampilkan form login
     public function showLoginForm()
     {
         return view('auth.login');
     }
 
-    // 🔹 Proses login
     public function login(Request $request)
     {
         $request->validate([
@@ -20,24 +21,32 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        // Hardcode admin login (nip/password)
-        $adminNip = '1234567890'; // bisa diubah sesuai kebutuhan
-        $adminPassword = 'password123'; // bisa diubah sesuai kebutuhan
+        $user = User::where('nip', $request->nip)->first();
 
-        if ($request->nip === $adminNip && $request->password === $adminPassword) {
-            session(['admin_logged_in' => true]);
-            return redirect()->route('admin.dashboard');
+        if (! $user) {
+            return back()->withErrors(['nip' => 'NIP tidak ditemukan'])->withInput();
         }
 
-        return back()
-            ->withErrors(['nip' => 'NIP atau password salah'])
-            ->withInput();
+        if (! Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['password' => 'Password salah'])->withInput();
+        }
+
+        // Gunakan Auth bawaan Laravel
+        Auth::login($user);
+
+        // regenerate session
+        $request->session()->regenerate();
+
+        return redirect()->route('admin.dashboard');
     }
 
-    // 🔹 Logout
     public function logout(Request $request)
     {
-        $request->session()->forget('admin_logged_in');
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
         return redirect()->route('login');
     }
 }
