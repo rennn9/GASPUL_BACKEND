@@ -2,9 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\PengaduanMasyarakatController;
-use App\Http\Controllers\PengaduanPelayananController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AntrianController;
 
 // ===========================
 // AUTH ROUTES
@@ -21,18 +20,18 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     // Dashboard
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
 
-    // CRUD
-    Route::resource('pengaduan_masyarakat', PengaduanMasyarakatController::class);
-    Route::resource('pengaduan_pelayanan', PengaduanPelayananController::class);
-
     // Multi delete
     Route::delete('/multi-delete', [AdminController::class, 'multiDelete'])->name('admin.multi_delete');
 
-    // Export PDF
-    Route::get('/pengaduan-masyarakat/pdf', [AdminController::class, 'exportMasyarakatPdf'])->name('admin.pengaduan_masyarakat.pdf');
-    Route::get('/pengaduan-pelayanan/pdf', [AdminController::class, 'exportPelayananPdf'])->name('admin.pengaduan_pelayanan.pdf');
+    // Update status via AJAX
+    Route::post('/admin/antrian/update-status', [AntrianController::class, 'updateStatus'])
+        ->name('admin.antrian.updateStatus');
 
-    // Filter AJAX
-    Route::get('/filter-masyarakat', [AdminController::class, 'filterMasyarakat'])->name('admin.filter.masyarakat');
-    Route::get('/filter-pelayanan', [AdminController::class, 'filterPelayanan'])->name('admin.filter.pelayanan');
+    // Partial table Antrian untuk AJAX refresh
+    Route::get('/admin/antrian/table', [AntrianController::class, 'table'])
+        ->name('admin.antrian.table');
+
+    // Download PDF tiket
+    Route::get('admin/tiket/download/{filename}', [AntrianController::class, 'downloadPdf'])
+        ->name('admin.antrian.download');
 });

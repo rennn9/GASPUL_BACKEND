@@ -1,8 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\PengaduanMasyarakatController;
-use App\Http\Controllers\PengaduanPelayananController;
+use App\Http\Controllers\AntrianController;
+use App\Http\Controllers\StatistikPelayananController;
 
-Route::post('/pengaduan-masyarakat', [PengaduanMasyarakatController::class, 'store']);
-Route::post('/pengaduan-pelayanan', [PengaduanPelayananController::class, 'store']);
+// Rute Antrian
+Route::post('/antrian/submit', [AntrianController::class, 'submit']);
+
+// Rute Statistik Pelayanan
+Route::get('/statistik-pelayanan', [StatistikPelayananController::class, 'index']);
