@@ -96,13 +96,40 @@ class AntrianController extends Controller
     }
 
     // 🔸 Partial table untuk AJAX refresh
-    public function table()
-    {
-        $antrian = Antrian::latest()->get();
+public function table(Request $request)
+{
+    $filter = $request->query('filter', 'all');
+    $date   = $request->query('date', null);
 
-        // Set locale supaya translatedFormat tetap pakai bahasa Indonesia
-        Carbon::setLocale('id');
+    $query = Antrian::query();
 
-        return view('admin.partials.antrian_table', compact('antrian'));
+    // Filter berdasarkan tab
+    switch($filter){
+        case 'today':
+            $query->whereDate('tanggal_daftar', now()->toDateString());
+            break;
+        case 'tomorrow':
+            $query->whereDate('tanggal_daftar', now()->addDay()->toDateString());
+            break;
+        case 'custom':
+            if($date) $query->whereDate('tanggal_daftar', $date);
+            break;
+        case 'all':
+        default:
+            // tanpa filter tanggal
+            break;
     }
+
+    // Urutkan berdasarkan tanggal & nomor antrian
+    $antrian = $query->orderBy('tanggal_daftar', 'desc')
+                     ->orderBy('nomor_antrian', 'desc')
+                     ->get();
+
+    // Set locale Carbon supaya translatedFormat pakai bahasa Indonesia
+    Carbon::setLocale('id');
+
+    return view('admin.partials.antrian_table', compact('antrian'));
+}
+
+
 }
