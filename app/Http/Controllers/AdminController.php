@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Antrian;
 use PDF;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -26,5 +27,24 @@ class AdminController extends Controller
         });
 
         return view('admin.dashboard', compact('antrian'));
+    }
+
+    public function statistik()
+    {
+        // Set locale Carbon ke Indonesia
+        Carbon::setLocale('id');
+
+        // Ambil statistik per bidang layanan
+        $statistik = Antrian::select(
+                'bidang_layanan',
+                DB::raw('COUNT(*) as total'),
+                DB::raw('SUM(CASE WHEN status = "Selesai" THEN 1 ELSE 0 END) as selesai'),
+                DB::raw('SUM(CASE WHEN status = "Batal" THEN 1 ELSE 0 END) as batal')
+            )
+            ->groupBy('bidang_layanan')
+            ->orderBy('total', 'desc')
+            ->get();
+
+        return view('admin.statistik', compact('statistik'));
     }
 }

@@ -20,6 +20,9 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     // Dashboard
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
 
+    // Statistik
+    Route::get('/statistik', [AdminController::class, 'statistik'])->name('admin.statistik');
+
     // Multi delete
     Route::delete('/multi-delete', [AdminController::class, 'multiDelete'])->name('admin.multi_delete');
 

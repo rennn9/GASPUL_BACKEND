@@ -125,12 +125,18 @@
             </div>
             <div class="sidebar-divider"></div>
 
-            <!-- Navigation Antrian -->
-            <p class="fw-bold mt-4">Antrian</p>
+            <!-- Navigation Menu -->
+            <p class="fw-bold mt-4">Menu</p>
             <ul class="nav flex-column ms-2">
                 <li class="nav-item mb-2">
-                    <a class="nav-link {{ request()->is('admin/dashboard#antrian') ? 'active' : '' }}" 
-                    href="{{ url('admin/dashboard#antrian') }}">
+                    <a class="nav-link {{ request()->is('admin/statistik*') ? 'active' : '' }}"
+                    href="{{ route('admin.statistik') }}">
+                        <i class="bi bi-bar-chart-line me-2"></i> <span>Statistik</span>
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/dashboard*') ? 'active' : '' }}"
+                    href="{{ route('admin.dashboard') }}">
                         <i class="bi bi-card-checklist me-2"></i> <span>Daftar Antrian</span>
                     </a>
                 </li>
@@ -183,25 +189,6 @@
         sidebar.classList.toggle('hidden');
         content.classList.toggle('full-width');
     });
-
-    // Set active sidebar link
-    function setActiveSidebar() {
-        const hash = window.location.hash || '#masyarakat';
-        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('href').includes(hash)) {
-                link.classList.add('active');
-            }
-        });
-
-        const tabTrigger = document.querySelector(`[data-bs-toggle="tab"][href="${hash}"]`);
-        if (tabTrigger) {
-            new bootstrap.Tab(tabTrigger).show();
-        }
-    }
-
-    window.addEventListener('DOMContentLoaded', setActiveSidebar);
-    window.addEventListener('hashchange', setActiveSidebar);
 </script>
 </body>
 </html>
