@@ -13,9 +13,9 @@
         </tr>
     </thead>
     <tbody>
-        @forelse($antrian as $item)
+        @forelse($antrian as $index => $item)
         <tr>
-            <td>{{ $loop->iteration }}</td>
+            <td>{{ $antrian->firstItem() + $index }}</td>
             <td>{{ $item->nomor_antrian }}</td>
             <td>{{ $item->nama }}</td>
             <td>{{ $item->no_hp }}</td>
@@ -38,3 +38,13 @@
         @endforelse
     </tbody>
 </table>
+
+{{-- Pagination Links --}}
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="text-muted">
+        Menampilkan {{ $antrian->firstItem() ?? 0 }} sampai {{ $antrian->lastItem() ?? 0 }} dari {{ $antrian->total() }} data
+    </div>
+    <div>
+        {{ $antrian->links('pagination::bootstrap-5') }}
+    </div>
+</div>

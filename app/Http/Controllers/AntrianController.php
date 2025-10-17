@@ -120,10 +120,10 @@ public function table(Request $request)
             break;
     }
 
-    // Urutkan berdasarkan tanggal & nomor antrian
+    // Urutkan berdasarkan tanggal & nomor antrian dan gunakan pagination (20 data per halaman)
     $antrian = $query->orderBy('tanggal_daftar', 'desc')
                      ->orderBy('nomor_antrian', 'desc')
-                     ->get();
+                     ->paginate(20);
 
     // Set locale Carbon supaya translatedFormat pakai bahasa Indonesia
     Carbon::setLocale('id');

@@ -41,6 +41,7 @@ document.addEventListener("DOMContentLoaded", function(){
     // ===== Current filter & tanggal custom =====
     let currentFilter = 'all'; // default = semua
     let currentDate = null;    // hanya digunakan jika filter = 'custom'
+    let currentPage = 1;       // halaman pagination saat ini
 
     // ===== Fungsi untuk memberi warna pada dropdown status =====
     function applyStatusColor(selectEl){
@@ -77,16 +78,30 @@ document.addEventListener("DOMContentLoaded", function(){
         });
     }
 
+    // ===== Fungsi attach event pada pagination links =====
+    function attachPaginationEvents(){
+        document.querySelectorAll('.pagination a').forEach(link => {
+            link.onclick = function(e){
+                e.preventDefault();
+                const url = new URL(this.href);
+                currentPage = url.searchParams.get('page') || 1;
+                refreshAntrianTable(false); // false = tidak reset halaman
+            }
+        });
+    }
+
     // ===== Fungsi refresh tabel antrian via AJAX =====
     // Menyimpan state dropdown agar tidak hilang saat refresh
-    function refreshAntrianTable(){
+    function refreshAntrianTable(resetPage = true){
+        if(resetPage) currentPage = 1; // reset ke halaman 1 jika filter berubah
+
         const statusMap = {};
 
         // Simpan status saat ini
         document.querySelectorAll('.status-dropdown').forEach(s => statusMap[s.dataset.id] = s.value);
 
-        // URL untuk fetch tabel (tambahkan filter & tanggal jika custom)
-        let url = "{{ route('admin.antrian.table') }}?filter=" + currentFilter;
+        // URL untuk fetch tabel (tambahkan filter, tanggal, dan page)
+        let url = "{{ route('admin.antrian.table') }}?filter=" + currentFilter + "&page=" + currentPage;
         if(currentFilter === 'custom' && currentDate) url += "&date=" + currentDate;
 
         fetch(url)
@@ -104,12 +119,16 @@ document.addEventListener("DOMContentLoaded", function(){
 
                 // Re-attach event ke dropdown baru
                 attachDropdownEvents();
+
+                // Re-attach event ke pagination baru
+                attachPaginationEvents();
             });
     }
 
     // ===== Inisialisasi =====
     attachDropdownEvents();
-    setInterval(refreshAntrianTable, 5000); // refresh tiap 5 detik
+    attachPaginationEvents();
+    setInterval(() => refreshAntrianTable(false), 5000); // refresh tiap 5 detik tanpa reset page
 
     // ===== Event TabBar filter =====
     document.querySelectorAll('#antrianTab button[data-filter]').forEach(btn => {
@@ -120,7 +139,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
             currentFilter = this.dataset.filter;
             currentDate = null; // reset tanggal custom
-            refreshAntrianTable();
+            refreshAntrianTable(true); // true = reset ke halaman 1
         }
     });
 
@@ -132,7 +151,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
         currentFilter = 'custom';
         currentDate = this.value;
-        refreshAntrianTable();
+        refreshAntrianTable(true); // true = reset ke halaman 1
     }
 
 });
