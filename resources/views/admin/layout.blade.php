@@ -140,6 +140,12 @@
                         <i class="bi bi-card-checklist me-2"></i> <span>Daftar Antrian</span>
                     </a>
                 </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/konsultasi*') ? 'active' : '' }}"
+                    href="{{ route('admin.konsultasi') }}">
+                        <i class="bi bi-chat-dots me-2"></i> <span>Layanan Konsultasi</span>
+                    </a>
+                </li>
             </ul>
         </div>
 

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AntrianController;
+use App\Http\Controllers\KonsultasiController;
 
 // ===========================
 // AUTH ROUTES
@@ -37,4 +38,10 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     // Download PDF tiket
     Route::get('admin/tiket/download/{filename}', [AntrianController::class, 'downloadPdf'])
         ->name('admin.antrian.download');
+
+    // Konsultasi Routes
+    Route::get('/konsultasi', [KonsultasiController::class, 'index'])->name('admin.konsultasi');
+    Route::get('/konsultasi/{id}', [KonsultasiController::class, 'show'])->name('admin.konsultasi.show');
+    Route::post('/konsultasi/status/{id}', [KonsultasiController::class, 'updateStatus'])->name('admin.konsultasi.updateStatus');
+    Route::delete('/konsultasi/{id}', [KonsultasiController::class, 'destroy'])->name('admin.konsultasi.destroy');
 });
