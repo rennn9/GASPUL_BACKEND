@@ -5,7 +5,7 @@
     <title>Tiket Antrian</title>
     <style>
         @page {
-            size: 80mm 60mm;
+            size: 80mm 63mm;
             margin: 0;
         }
 
@@ -17,9 +17,12 @@
         }
 
         .container {
-            width: 76mm; /* lebih kecil */
-            padding: 2mm;
+            width: 76mm; /* lebih kecil dari kertas 80mm */
             box-sizing: border-box;
+
+            /* Padding lengkap semua sisi: top right bottom left */
+            padding: 2mm 3mm 2mm 3mm; 
+            /* artinya: padding-top:2mm; padding-right:3mm; padding-bottom:2mm; padding-left:3mm; */
         }
 
         .logo {
@@ -79,31 +82,31 @@
 <body>
     <div class="container">
         <!-- Header -->
-        <table width="100%">
-            <tr>
-                <td style="width:9mm; text-align:center;">
-                    <img src="file://{{ public_path('assets/images/kemenag.png') }}" class="logo" alt="Logo">
-                </td>
-                <td class="header-text" style="padding-left:2mm;">
-                    <h1>Kantor Wilayah Kementrian Agama<br>Provinsi Sulawesi Barat</h1>
-                    <p>
-                        Jl. H.A.M Jl. Abdul Malik Pattana Endeng No.46, Simboro,<br>
-                        Kec. Simboro Dan Kepulauan, Kab. Mamuju, Sulbar 91512
-                    </p>
-                </td>
-            </tr>
-        </table>
+<table width="100%" style="margin: 0 auto; text-align: center;">
+    <tr>
+        <td style="width:9mm; text-align:center;">
+            <img src="file://{{ public_path('assets/images/kemenag.png') }}" class="logo" alt="Logo">
+        </td>
+        <td class="header-text" style="padding-left:2mm; text-align:left;">
+            <h1>Kantor Wilayah Kementrian Agama<br>Provinsi Sulawesi Barat</h1>
+            <p>
+                Jl. H.A.M Jl. Abdul Malik Pattana Endeng No.46, Simboro,<br>
+                Kec. Simboro Dan Kepulauan, Kab. Mamuju, Sulbar 91512
+            </p>
+        </td>
+    </tr>
+</table>
 
         <div class="divider"></div>
 
-        <!-- Nomor Antrian & QR -->
-        <table class="ticket-box" width="100%">
+        <table class="ticket-box" width="100%" 
+            style="padding: 3px 20px 3px 20px; border-collapse: separate;">
             <tr>
-                <td style="width:60%; text-align:left;">
+                <td style="width:58%; text-align:center;">
                     <div style="font-size:6pt; margin-bottom:1px;">NOMOR ANTRIAN</div>
                     <div class="queue-number">{{ $nomor }}</div>
                 </td>
-                <td style="width:40%; text-align:right;">
+                <td style="width:0%;">
                     <img src="data:image/png;base64, {{ $qrCode }}" class="qr-code" alt="QR Code">
                 </td>
             </tr>

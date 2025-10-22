@@ -17,7 +17,6 @@
     </li>
 </ul>
 
-
 <div class="card shadow-sm">
     <div class="card-body">
         {{-- Grafik Layanan --}}
@@ -57,112 +56,51 @@
     </div>
 </div>
 
-{{-- Chart.js CDN --}}
+{{-- Chart.js --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Data dari Laravel
     const statistik = @json($statistik);
-
-    // Prepare data untuk chart
     const labels = statistik.map(item => item.bidang_layanan);
     const totalData = statistik.map(item => item.total);
     const selesaiData = statistik.map(item => item.selesai);
     const batalData = statistik.map(item => item.batal);
 
-    // Warna untuk chart (sesuai dengan tampilan mobile)
     const colors = {
-        total: 'rgba(33, 150, 243, 0.8)',      // Biru
-        selesai: 'rgba(76, 175, 80, 0.8)',     // Hijau
-        batal: 'rgba(244, 67, 54, 0.8)'        // Merah
+        total: 'rgba(33, 150, 243, 0.8)',
+        selesai: 'rgba(76, 175, 80, 0.8)',
+        batal: 'rgba(244, 67, 54, 0.8)'
     };
 
-    // Create chart
     const ctx = document.getElementById('layananChart').getContext('2d');
-    const chart = new Chart(ctx, {
+    new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [
-                {
-                    label: 'Total',
-                    data: totalData,
-                    backgroundColor: colors.total,
-                    borderColor: 'rgba(33, 150, 243, 1)',
-                    borderWidth: 1
-                },
-                {
-                    label: 'Selesai',
-                    data: selesaiData,
-                    backgroundColor: colors.selesai,
-                    borderColor: 'rgba(76, 175, 80, 1)',
-                    borderWidth: 1
-                }
+                { label: 'Total', data: totalData, backgroundColor: colors.total },
+                { label: 'Selesai', data: selesaiData, backgroundColor: colors.selesai },
+                { label: 'Batal', data: batalData, backgroundColor: colors.batal },
             ]
         },
         options: {
-            indexAxis: 'y', // Horizontal bar chart seperti di mobile
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 5
-                    },
-                    grid: {
-                        display: true,
-                        drawBorder: true
-                    }
-                },
-                y: {
-                    grid: {
-                        display: false
-                    }
-                }
+                x: { beginAtZero: true, ticks: { stepSize: 5 } },
+                y: { grid: { display: false } }
             },
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'bottom',
-                    labels: {
-                        boxWidth: 20,
-                        padding: 15
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': ' + context.parsed.x;
-                        }
-                    }
-                }
-            }
+            plugins: { legend: { display: true, position: 'bottom' } }
         }
     });
 });
 </script>
 
 <style>
-.chart-container {
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-}
-
-.card {
-    border: none;
-    border-radius: 10px;
-}
-
-.table th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-}
-
-.table-bordered {
-    border: 1px solid #dee2e6;
-}
+.chart-container { background: #fff; padding: 20px; border-radius: 8px; }
+.card { border: none; border-radius: 10px; }
+.table th { background-color: #f8f9fa; font-weight: 600; }
+.table-bordered { border: 1px solid #dee2e6; }
 </style>
 @endsection

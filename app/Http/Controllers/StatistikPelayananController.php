@@ -8,6 +8,22 @@ use Illuminate\Support\Facades\DB;
 
 class StatistikPelayananController extends Controller
 {
+    // Endpoint untuk API Flutter
+public function apiIndex()
+{
+    $statistik = Antrian::select(
+        'bidang_layanan',
+        DB::raw('COUNT(*) as total'),
+        DB::raw('SUM(CASE WHEN status = "Selesai" THEN 1 ELSE 0 END) as selesai'),
+        DB::raw('SUM(CASE WHEN status = "Batal" THEN 1 ELSE 0 END) as batal')
+    )
+    ->groupBy('bidang_layanan')
+    ->get();
+
+    return response()->json($statistik);
+} 
+
+    // Endpoint Blade (untuk web)
     public function index()
     {
         $statistik = Antrian::select(
@@ -19,6 +35,6 @@ class StatistikPelayananController extends Controller
             ->groupBy('bidang_layanan')
             ->get();
 
-        return response()->json($statistik);
+        return view('admin.statistik.pelayanan', compact('statistik'));
     }
 }
