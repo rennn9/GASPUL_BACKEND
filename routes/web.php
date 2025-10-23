@@ -58,6 +58,14 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/tiket/download/{filename}', [AntrianController::class, 'downloadPdf'])
         ->name('admin.antrian.download');
 
+    // Download PDF Antrian
+// Route untuk download daftar antrian (PDF) sesuai filter
+Route::get('/admin/antrian/download', [AntrianController::class, 'downloadPdfDaftar'])
+    ->name('admin.antrian.download.daftar')
+    ->middleware('auth'); // pastikan hanya admin login yang bisa akses
+
+
+
     // ======================
     // Konsultasi
     // ======================

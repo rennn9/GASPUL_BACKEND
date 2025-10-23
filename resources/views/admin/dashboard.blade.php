@@ -27,6 +27,22 @@
     </ul>
 </div>
 
+<!-- Download Daftar Antrian -->
+<button id="download-pdf-btn" class="btn btn-success">Download PDF</button>
+
+<script>
+document.getElementById('download-pdf-btn').addEventListener('click', function() {
+    let currentFilter = 'all'; // ganti sesuai logika tab yang aktif
+    let currentDate = document.getElementById('customDate').value;
+
+    let url = "{{ route('admin.antrian.download.daftar') }}?filter=" + currentFilter;
+    if(currentFilter === 'custom' && currentDate) url += "&date=" + currentDate;
+
+    window.open(url, '_blank'); // buka di tab baru
+});
+</script>
+
+
 {{-- ============================= --}}
 {{-- Container Tabel Antrian --}}
 {{-- Partial ini berisi tabel antrian dan status dropdown --}}

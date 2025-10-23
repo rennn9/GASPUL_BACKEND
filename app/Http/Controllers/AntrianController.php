@@ -96,15 +96,49 @@ class AntrianController extends Controller
     }
 
     // 🔸 Partial table untuk AJAX refresh
-public function table(Request $request)
+    public function table(Request $request)
+    {
+        $filter = $request->query('filter', 'all');
+        $date   = $request->query('date', null);
+
+        $query = Antrian::query();
+
+        // Filter berdasarkan tab
+        switch($filter){
+            case 'today':
+                $query->whereDate('tanggal_daftar', now()->toDateString());
+                break;
+            case 'tomorrow':
+                $query->whereDate('tanggal_daftar', now()->addDay()->toDateString());
+                break;
+            case 'custom':
+                if($date) $query->whereDate('tanggal_daftar', $date);
+                break;
+            case 'all':
+            default:
+                // tanpa filter tanggal
+                break;
+        }
+
+        // Urutkan berdasarkan tanggal & nomor antrian dan gunakan pagination (20 data per halaman)
+        $antrian = $query->orderBy('tanggal_daftar', 'desc')
+                        ->orderBy('nomor_antrian', 'desc')
+                        ->paginate(20);
+
+        // Set locale Carbon supaya translatedFormat pakai bahasa Indonesia
+        Carbon::setLocale('id');
+
+        return view('admin.partials.antrian_table', compact('antrian'));
+    }
+
+public function downloadPdfDaftar(Request $request)
 {
     $filter = $request->query('filter', 'all');
     $date   = $request->query('date', null);
 
     $query = Antrian::query();
 
-    // Filter berdasarkan tab
-    switch($filter){
+    switch ($filter) {
         case 'today':
             $query->whereDate('tanggal_daftar', now()->toDateString());
             break;
@@ -112,24 +146,32 @@ public function table(Request $request)
             $query->whereDate('tanggal_daftar', now()->addDay()->toDateString());
             break;
         case 'custom':
-            if($date) $query->whereDate('tanggal_daftar', $date);
+            if ($date) $query->whereDate('tanggal_daftar', $date);
             break;
         case 'all':
         default:
-            // tanpa filter tanggal
             break;
     }
 
-    // Urutkan berdasarkan tanggal & nomor antrian dan gunakan pagination (20 data per halaman)
     $antrian = $query->orderBy('tanggal_daftar', 'desc')
                      ->orderBy('nomor_antrian', 'desc')
-                     ->paginate(20);
+                     ->get();
 
-    // Set locale Carbon supaya translatedFormat pakai bahasa Indonesia
     Carbon::setLocale('id');
 
-    return view('admin.partials.antrian_table', compact('antrian'));
+$pdf = PDF::loadView('admin.exports.antrian_pdf', [
+    'antrians' => $antrian,
+    'filter'   => $filter,
+    'date'     => $date
+])->setPaper('a4', 'portrait');
+
+    $fileName = 'Daftar_Antrian_' . now()->format('Ymd_His') . '.pdf';
+    return $pdf->download($fileName);
 }
+
+
+
+
 
 
 }
