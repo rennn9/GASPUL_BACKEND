@@ -133,12 +133,16 @@ class AntrianController extends Controller
 
 public function downloadPdfDaftar(Request $request)
 {
+    // Set locale Carbon ke Indonesia
+    Carbon::setLocale('id');
+    setlocale(LC_TIME, 'id_ID.utf8'); // penting untuk DomPDF
+
     $filter = $request->query('filter', 'all');
     $date   = $request->query('date', null);
 
     $query = Antrian::query();
 
-    switch ($filter) {
+    switch($filter){
         case 'today':
             $query->whereDate('tanggal_daftar', now()->toDateString());
             break;
@@ -146,7 +150,7 @@ public function downloadPdfDaftar(Request $request)
             $query->whereDate('tanggal_daftar', now()->addDay()->toDateString());
             break;
         case 'custom':
-            if ($date) $query->whereDate('tanggal_daftar', $date);
+            if($date) $query->whereDate('tanggal_daftar', $date);
             break;
         case 'all':
         default:
@@ -157,17 +161,15 @@ public function downloadPdfDaftar(Request $request)
                      ->orderBy('nomor_antrian', 'desc')
                      ->get();
 
-    Carbon::setLocale('id');
-
-$pdf = PDF::loadView('admin.exports.antrian_pdf', [
-    'antrians' => $antrian,
-    'filter'   => $filter,
-    'date'     => $date
-])->setPaper('a4', 'portrait');
-
-    $fileName = 'Daftar_Antrian_' . now()->format('Ymd_His') . '.pdf';
-    return $pdf->download($fileName);
+    return PDF::loadView('admin.exports.antrian_pdf', [
+        'antrians' => $antrian,
+        'filter'   => $filter,
+        'date'     => $date
+    ])->setPaper('a4', 'portrait')
+      ->stream("Daftar_Antrian_{$filter}.pdf");
 }
+
+
 
 
 

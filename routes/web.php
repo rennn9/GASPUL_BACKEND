@@ -58,11 +58,9 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/tiket/download/{filename}', [AntrianController::class, 'downloadPdf'])
         ->name('admin.antrian.download');
 
-    // Download PDF Antrian
-// Route untuk download daftar antrian (PDF) sesuai filter
-Route::get('/admin/antrian/download', [AntrianController::class, 'downloadPdfDaftar'])
-    ->name('admin.antrian.download.daftar')
-    ->middleware('auth'); // pastikan hanya admin login yang bisa akses
+    Route::get('/admin/antrian/download', [AntrianController::class, 'downloadPdfDaftar'])
+        ->name('admin.antrian.download.daftar')
+        ->middleware('auth'); // pastikan hanya admin login yang bisa akses
 
 
 
@@ -75,6 +73,16 @@ Route::get('/admin/antrian/download', [AntrianController::class, 'downloadPdfDaf
         ->name('admin.konsultasi.updateStatus');
     Route::delete('/konsultasi/{id}', [KonsultasiController::class, 'destroy'])
         ->name('admin.konsultasi.destroy');
+Route::get('admin/konsultasi/pdf', [KonsultasiController::class, 'downloadPdf'])
+    ->name('admin.konsultasi.pdf');
+
+
+
+
+
+
+
+
 
     // ======================
     // Multi Delete

@@ -5,13 +5,13 @@
     <h2 class="fw-bold">Layanan Konsultasi</h2>
 </div>
 
-{{-- Filter Status --}}
+{{-- Filter Status + Tombol Download --}}
 <div class="card shadow-sm mb-3">
-    <div class="card-body">
-        <form method="GET" action="{{ route('admin.konsultasi') }}" class="row g-3">
-            <div class="col-md-4">
+    <div class="card-body d-flex align-items-end gap-3">
+        <form method="GET" action="{{ route('admin.konsultasi') }}" class="d-flex gap-2 align-items-end">
+            <div class="mb-0">
                 <label class="form-label">Filter Status</label>
-                <select name="status" class="form-select" onchange="this.form.submit()">
+                <select name="status" id="statusFilter" class="form-select" onchange="this.form.submit()">
                     <option value="semua" {{ request('status') == 'semua' ? 'selected' : '' }}>Semua Status</option>
                     <option value="baru" {{ request('status') == 'baru' ? 'selected' : '' }}>Baru</option>
                     <option value="proses" {{ request('status') == 'proses' ? 'selected' : '' }}>Proses</option>
@@ -20,6 +20,11 @@
                 </select>
             </div>
         </form>
+
+        {{-- Tombol Download PDF --}}
+        <button id="download-pdf-btn" class="btn btn-success mb-0">
+            <i class="bi bi-file-earmark-pdf"></i> <span id="download-pdf-text">Download PDF</span>
+        </button>
     </div>
 </div>
 
@@ -50,10 +55,8 @@
                         <td>{{ $item->no_hp }}</td>
                         <td>{{ $item->email ?? '-' }}</td>
                         <td>{{ $item->perihal }}</td>
-                        <td>
-                            <div style="max-width: 300px; white-space: pre-wrap;">
-                                {{ Str::limit($item->isi_konsultasi, 100) }}
-                            </div>
+                        <td style="max-width: 300px; white-space: pre-wrap;">
+                            {{ Str::limit($item->isi_konsultasi, 100) }}
                         </td>
                         <td class="text-center">
                             @if($item->dokumen)
@@ -104,74 +107,82 @@
     </div>
 </div>
 
+{{-- Script --}}
 <script>
 document.addEventListener("DOMContentLoaded", function(){
+    const statusSelect = document.getElementById('statusFilter');
+    const downloadBtn = document.getElementById('download-pdf-btn');
+    const downloadText = document.getElementById('download-pdf-text');
 
-    // Fungsi untuk memberi warna pada dropdown status
+    // Fungsi update title & text PDF
+    function updateDownloadTitle() {
+        const selected = statusSelect.options[statusSelect.selectedIndex].text;
+        downloadText.textContent = `Download daftar konsultasi - ${selected.toLowerCase()}`;
+        downloadBtn.title = `Download daftar konsultasi - ${selected.toLowerCase()}`;
+    }
+
+    updateDownloadTitle();
+
+    // Event klik download
+downloadBtn.onclick = function(){
+    const status = statusSelect.value;
+    fetch("{{ route('admin.konsultasi.pdf') }}?status=" + status)
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                // buka link langsung, aman untuk download manager
+                window.open(data.url, '_blank');
+            } else {
+                alert('Gagal generate PDF');
+            }
+        })
+        .catch(() => alert('Terjadi error saat generate PDF'));
+};
+
+
+    // Update saat filter berubah
+    statusSelect.addEventListener('change', updateDownloadTitle);
+
+    // Status dropdown warna
     function applyStatusColor(selectEl){
-        selectEl.classList.remove('bg-info','bg-warning','bg-success','bg-danger','text-white');
+        selectEl.classList.remove('bg-info','bg-warning','bg-success','bg-danger','text-white','text-dark');
         switch(selectEl.value){
-            case 'baru':
-                selectEl.classList.add('bg-info','text-white');
-                break;
-            case 'proses':
-                selectEl.classList.add('bg-warning','text-dark');
-                break;
-            case 'selesai':
-                selectEl.classList.add('bg-success','text-white');
-                break;
-            case 'batal':
-                selectEl.classList.add('bg-danger','text-white');
-                break;
+            case 'baru': selectEl.classList.add('bg-info','text-white'); break;
+            case 'proses': selectEl.classList.add('bg-warning','text-dark'); break;
+            case 'selesai': selectEl.classList.add('bg-success','text-white'); break;
+            case 'batal': selectEl.classList.add('bg-danger','text-white'); break;
         }
     }
 
-    // Event handler untuk dropdown status
     document.querySelectorAll('.status-dropdown').forEach(dropdown => {
         applyStatusColor(dropdown);
-
         dropdown.onchange = function(){
-            fetch("{{ url('admin/konsultasi/status') }}/" + this.dataset.id, {
+            const id = this.dataset.id;
+            const status = this.value;
+
+            fetch("{{ url('admin/konsultasi/status') }}/" + id, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "X-CSRF-TOKEN": "{{ csrf_token() }}"
                 },
-                body: JSON.stringify({ status: this.value })
+                body: JSON.stringify({ status })
             })
             .then(r => r.json())
             .then(data => {
-                if(data.success) {
-                    applyStatusColor(this);
-                    // Show toast or alert
-                    alert('Status berhasil diupdate');
-                } else {
-                    alert('Gagal update status');
-                }
+                if(data.success) applyStatusColor(this);
+                else alert('Gagal update status');
             })
-            .catch(e => {
-                console.error(e);
-                alert('Error update status');
-            });
+            .catch(() => alert('Terjadi error saat update status'));
         }
     });
 });
 </script>
 
 <style>
-.table th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.status-dropdown {
-    min-width: 100px;
-}
-
-.card {
-    border: none;
-    border-radius: 10px;
-}
+.table th { background-color: #f8f9fa; font-weight: 600; white-space: nowrap; }
+.status-dropdown { min-width: 100px; }
+.card { border: none; border-radius: 10px; }
+#download-pdf-btn { margin-bottom: 0; }
 </style>
 @endsection

@@ -2,35 +2,54 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Models\Konsultasi;
 use Carbon\Carbon;
+use PDF;
 
 class KonsultasiController extends Controller
 {
     // Menampilkan daftar konsultasi untuk admin
-    public function index(Request $request)
-    {
-        Carbon::setLocale('id');
+public function index(Request $request)
+{
+    static $logged = false;
+    Carbon::setLocale('id');
 
-        $query = Konsultasi::query();
+    $query = Konsultasi::query();
+    $statusFilter = $request->query('status', 'semua');
 
-        // Filter berdasarkan status jika ada
-        if ($request->has('status') && $request->status != 'semua') {
-            $query->where('status', $request->status);
-        }
-
-        // Pagination 20 data per halaman
-        $konsultasis = $query->orderBy('tanggal_konsultasi', 'desc')
-                            ->paginate(20);
-
-        return view('admin.konsultasi.index', compact('konsultasis'));
+    if ($statusFilter != 'semua') {
+        $query->where('status', $statusFilter);
     }
+
+    $konsultasis = $query->orderBy('tanggal_konsultasi', 'desc')->paginate(20);
+
+    if (!$logged) {
+        Log::info("Admin melihat daftar konsultasi", [
+            'admin_id' => auth()->id(),
+            'status_filter' => $statusFilter,
+            'data_count' => $konsultasis->count(),
+            'timestamp' => now()
+        ]);
+        $logged = true;
+    }
+
+    return view('admin.konsultasi.index', compact('konsultasis'));
+}
+
 
     // Menampilkan detail konsultasi
     public function show($id)
     {
         $konsultasi = Konsultasi::findOrFail($id);
+
+        Log::info("Admin melihat detail konsultasi", [
+            'admin_id' => auth()->id(),
+            'konsultasi_id' => $id,
+            'timestamp' => now()
+        ]);
+
         return view('admin.konsultasi.show', compact('konsultasi'));
     }
 
@@ -42,8 +61,17 @@ class KonsultasiController extends Controller
         ]);
 
         $konsultasi = Konsultasi::findOrFail($id);
+        $oldStatus = $konsultasi->status;
         $konsultasi->status = $request->status;
         $konsultasi->save();
+
+        Log::info("Status konsultasi diubah", [
+            'admin_id' => auth()->id(),
+            'konsultasi_id' => $id,
+            'old_status' => $oldStatus,
+            'new_status' => $request->status,
+            'timestamp' => now()
+        ]);
 
         return response()->json(['success' => true, 'message' => 'Status berhasil diupdate']);
     }
@@ -53,12 +81,17 @@ class KonsultasiController extends Controller
     {
         $konsultasi = Konsultasi::findOrFail($id);
 
-        // Hapus file dokumen jika ada
         if ($konsultasi->dokumen && \Storage::disk('public')->exists($konsultasi->dokumen)) {
             \Storage::disk('public')->delete($konsultasi->dokumen);
         }
 
         $konsultasi->delete();
+
+        Log::info("Konsultasi dihapus", [
+            'admin_id' => auth()->id(),
+            'konsultasi_id' => $id,
+            'timestamp' => now()
+        ]);
 
         return redirect()->route('admin.konsultasi')->with('success', 'Data konsultasi berhasil dihapus');
     }
@@ -80,7 +113,7 @@ class KonsultasiController extends Controller
             $filePath = $request->file('dokumen')->store('konsultasi', 'public');
         }
 
-        Konsultasi::create([
+        $konsultasi = Konsultasi::create([
             'nama_lengkap' => $validated['nama_lengkap'],
             'no_hp' => $validated['no_hp'],
             'email' => $validated['email'] ?? null,
@@ -91,9 +124,53 @@ class KonsultasiController extends Controller
             'tanggal_konsultasi' => now(),
         ]);
 
+        Log::info("Konsultasi baru dibuat via API", [
+            'konsultasi_id' => $konsultasi->id,
+            'nama_lengkap' => $konsultasi->nama_lengkap,
+            'no_hp' => $konsultasi->no_hp,
+            'email' => $konsultasi->email,
+            'perihal' => $konsultasi->perihal,
+            'timestamp' => now()
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Konsultasi berhasil dikirim'
         ], 200);
     }
+
+    // Download PDF dengan log lengkap
+public function downloadPdf(Request $request)
+{
+    $status = $request->query('status', 'semua');
+    $query = Konsultasi::query();
+    if($status !== 'semua') $query->where('status', $status);
+    $konsultasis = $query->orderBy('tanggal_konsultasi','desc')->get();
+
+    Carbon::setLocale('id');
+
+    try {
+        $pdf = PDF::loadView('admin.exports.konsultasi_pdf', [
+            'konsultasis' => $konsultasis,
+            'status' => $status
+        ])->setPaper('a4', 'portrait');
+
+        // simpan ke storage/public
+        $fileName = "Daftar_Konsultasi_{$status}.pdf";
+        $path = "konsultasi_pdf/{$fileName}";
+        \Storage::disk('public')->put($path, $pdf->output());
+
+        // kembalikan URL publik
+        return response()->json([
+            'success' => true,
+            'url' => asset('storage/'.$path)
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Gagal generate PDF', ['error' => $e->getMessage()]);
+        return response()->json(['success' => false, 'message' => 'Gagal generate PDF']);
+    }
+}
+
+
 }
