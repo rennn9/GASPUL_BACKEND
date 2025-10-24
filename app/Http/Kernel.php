@@ -10,16 +10,13 @@ class Kernel extends HttpKernel
      * Global HTTP middleware stack.
      */
     protected $middleware = [
-        // middleware global Laravel, misal
+        // Middleware global Laravel
         \App\Http\Middleware\TrustProxies::class,
         \Fruitcake\Cors\HandleCors::class,
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
-
-        'session.auth' => \App\Http\Middleware\EnsureUserIsLoggedIn::class,
-        'role' => \App\Http\Middleware\CheckRole::class,
     ];
 
     /**
@@ -46,8 +43,10 @@ class Kernel extends HttpKernel
      */
     protected $routeMiddleware = [
         'auth.admin' => \App\Http\Middleware\AdminAuth::class,
-        // middleware Laravel lainnya bisa ditambahkan di sini
         'auth' => \App\Http\Middleware\Authenticate::class,
         'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
+        'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class, // <== penting
+        'role' => \App\Http\Middleware\CheckRole::class,
+        'session.auth' => \App\Http\Middleware\EnsureUserIsLoggedIn::class,
     ];
 }

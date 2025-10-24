@@ -126,17 +126,21 @@ document.addEventListener("DOMContentLoaded", function(){
     // Event klik download
 downloadBtn.onclick = function(){
     const status = statusSelect.value;
+downloadBtn.onclick = function(){
+    const status = statusSelect.value;
     fetch("{{ route('admin.konsultasi.pdf') }}?status=" + status)
         .then(res => res.json())
         .then(data => {
             if(data.success) {
-                // buka link langsung, aman untuk download manager
+                // ✅ Buka PDF di tab baru
                 window.open(data.url, '_blank');
             } else {
                 alert('Gagal generate PDF');
             }
         })
         .catch(() => alert('Terjadi error saat generate PDF'));
+};
+
 };
 
 
