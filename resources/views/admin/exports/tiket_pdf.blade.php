@@ -108,7 +108,7 @@
                     <div class="queue-number">{{ $nomor }}</div>
                 </td>
                 <td style="width:0%;">
-                    <img src="data:image/png;base64, {{ $qrCode }}" class="qr-code" alt="QR Code">
+                    <img src="data:image/svg+xml;base64,{{ $qrCode }}" class="qr-code" alt="QR Code">
                 </td>
             </tr>
         </table>
