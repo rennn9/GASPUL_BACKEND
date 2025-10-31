@@ -13,40 +13,29 @@ class KonsultasiController extends Controller
     // 🔹 Menampilkan daftar konsultasi untuk admin
     public function index(Request $request)
     {
-        try {
-            static $logged = false;
-            Carbon::setLocale('id');
+        static $logged = false;
+        Carbon::setLocale('id');
 
-            $query = Konsultasi::query();
-            $statusFilter = $request->query('status', 'semua');
+        $query = Konsultasi::query();
+        $statusFilter = $request->query('status', 'semua');
 
-            if ($statusFilter != 'semua') {
-                $query->where('status', $statusFilter);
-            }
-
-            $konsultasis = $query->orderBy('tanggal_konsultasi', 'desc')->paginate(20);
-
-            if (!$logged) {
-                Log::info("Admin melihat daftar konsultasi", [
-                    'admin_id' => auth()->id(),
-                    'status_filter' => $statusFilter,
-                    'data_count' => $konsultasis->count(),
-                    'timestamp' => now()
-                ]);
-                $logged = true;
-            }
-
-            return view('admin.konsultasi.index', compact('konsultasis'));
-        } catch (\Exception $e) {
-            Log::error('Error di KonsultasiController@index: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-
-            return response()->view('errors.500', [
-                'error' => $e->getMessage(),
-                'line' => $e->getLine(),
-                'file' => $e->getFile()
-            ], 500);
+        if ($statusFilter != 'semua') {
+            $query->where('status', $statusFilter);
         }
+
+        $konsultasis = $query->orderBy('tanggal_konsultasi', 'desc')->paginate(20);
+
+        if (!$logged) {
+            Log::info("Admin melihat daftar konsultasi", [
+                'admin_id' => auth()->id(),
+                'status_filter' => $statusFilter,
+                'data_count' => $konsultasis->count(),
+                'timestamp' => now()
+            ]);
+            $logged = true;
+        }
+
+        return view('admin.konsultasi.index', compact('konsultasis'));
     }
 
     // 🔹 Menampilkan detail konsultasi
