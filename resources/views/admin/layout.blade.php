@@ -171,9 +171,10 @@
                 <img src="{{ asset('assets/images/logo-gaspul.png') }}" alt="Logo Gaspul" class="logo mb-2">
                 <h5 class="fw-bold mb-1">Admin GASPUL</h5>
                 @auth
-                    <span class="badge 
+                    <span class="badge
                         @if(Auth::user()->role === 'superadmin') bg-danger
                         @elseif(Auth::user()->role === 'admin') bg-success
+                        @elseif(Auth::user()->role === 'operator') bg-info
                         @else bg-secondary @endif
                     ">
                         {{ ucfirst(Auth::user()->role) }}
@@ -204,6 +205,17 @@
                     </a>
                 </li>
 
+                {{-- Monitor Antrian: Accessible by Superadmin, Admin, and Operator --}}
+                @if(in_array(Auth::user()->role, ['superadmin', 'admin', 'operator']))
+                <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/monitor*') ? 'active' : '' }}"
+                    href="{{ route('admin.monitor') }}">
+                        <i class="bi bi-display me-2"></i> <span>Monitor Antrian</span>
+                    </a>
+                </li>
+                @endif
+
+                {{-- User Management: Only Superadmin --}}
                 @if(Auth::user()->role === 'superadmin')
                 <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/users*') ? 'active' : '' }}"
@@ -211,14 +223,6 @@
                         <i class="bi bi-people me-2"></i> <span>User Management</span>
                     </a>
                 </li>
-
-                <li class="nav-item mb-2">
-                    <a class="nav-link {{ request()->is('admin/monitor*') ? 'active' : '' }}"
-                    href="{{ route('admin.monitor') }}">
-                        <i class="bi bi-display me-2"></i> <span>Monitor Antrian</span>
-                    </a>
-                </li>
-
                 @endif
             </ul>
         </div>

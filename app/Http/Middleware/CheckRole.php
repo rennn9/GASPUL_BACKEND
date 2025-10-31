@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Support\Facades\Auth;
 
 class CheckRole
 {
@@ -11,11 +12,13 @@ class CheckRole
      */
     public function handle($request, Closure $next, ...$roles)
     {
-        $userRole = $request->session()->get('user_role');
-
-        if (! $userRole) {
+        // Check if user is authenticated
+        if (! Auth::check()) {
             return redirect()->route('login');
         }
+
+        // Get user role from authenticated user
+        $userRole = Auth::user()->role;
 
         // jika roles kosong, biarkan
         if (empty($roles)) {
@@ -24,7 +27,7 @@ class CheckRole
 
         if (! in_array($userRole, $roles)) {
             // bisa arahkan ke halaman 403 atau dashboard dengan pesan
-            abort(403, 'Akses ditolak');
+            abort(403, 'Akses ditolak untuk role ' . $userRole);
         }
 
         return $next($request);

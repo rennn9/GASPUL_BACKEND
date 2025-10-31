@@ -59,9 +59,13 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/antrian/download', [AntrianController::class, 'downloadPdfDaftar'])
         ->name('antrian.download.daftar');
 
-    // Monitor Antrian
-    Route::get('/monitor', [AntrianController::class, 'monitor'])->name('monitor');
-    Route::get('/monitor/data', [AntrianController::class, 'monitorData'])->name('monitor.data');
+    // -----------------------
+    // Monitor Antrian (Accessible by Superadmin, Admin, and Operator)
+    // -----------------------
+    Route::middleware('role:superadmin,admin,operator')->group(function () {
+        Route::get('/monitor', [AntrianController::class, 'monitor'])->name('monitor');
+        Route::get('/monitor/data', [AntrianController::class, 'monitorData'])->name('monitor.data');
+    });
 
     // -----------------------
     // Konsultasi
