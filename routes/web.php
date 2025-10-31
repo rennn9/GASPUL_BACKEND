@@ -59,16 +59,18 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/antrian/download', [AntrianController::class, 'downloadPdfDaftar'])
         ->name('antrian.download.daftar');
 
+    // Monitor Antrian
+    Route::get('/monitor', [AntrianController::class, 'monitor'])->name('monitor');
+    Route::get('/monitor/data', [AntrianController::class, 'monitorData'])->name('monitor.data');
+
     // -----------------------
     // Konsultasi
     // -----------------------
-// ✅ Urutan yang benar
-Route::get('/konsultasi', [KonsultasiController::class, 'index'])->name('konsultasi');
-Route::get('/konsultasi/pdf', [KonsultasiController::class, 'downloadPdf'])->name('konsultasi.pdf');
-Route::get('/konsultasi/{id}', [KonsultasiController::class, 'show'])->name('konsultasi.show');
-Route::post('/konsultasi/status/{id}', [KonsultasiController::class, 'updateStatus'])->name('konsultasi.updateStatus');
-Route::delete('/konsultasi/{id}', [KonsultasiController::class, 'destroy'])->name('konsultasi.destroy');
-
+    Route::get('/konsultasi', [KonsultasiController::class, 'index'])->name('konsultasi');
+    Route::get('/konsultasi/pdf', [KonsultasiController::class, 'downloadPdf'])->name('konsultasi.pdf');
+    Route::get('/konsultasi/{id}', [KonsultasiController::class, 'show'])->name('konsultasi.show');
+    Route::post('/konsultasi/status/{id}', [KonsultasiController::class, 'updateStatus'])->name('konsultasi.updateStatus');
+    Route::delete('/konsultasi/{id}', [KonsultasiController::class, 'destroy'])->name('konsultasi.destroy');
 
     // -----------------------
     // Multi Delete
@@ -79,8 +81,8 @@ Route::delete('/konsultasi/{id}', [KonsultasiController::class, 'destroy'])->nam
     // -----------------------
     // Superadmin Only Routes
     // -----------------------
-Route::middleware('superadmin')->group(function () {
-    Route::resource('users', \App\Http\Controllers\UserController::class);
-});
+    Route::middleware('superadmin')->group(function () {
+        Route::resource('users', UserController::class);
+    });
 
 });

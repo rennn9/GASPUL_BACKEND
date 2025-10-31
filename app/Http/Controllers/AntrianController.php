@@ -148,8 +148,8 @@ class AntrianController extends Controller
         }
 
         // Urutkan berdasarkan tanggal & nomor antrian dan gunakan pagination (20 data per halaman)
-        $antrian = $query->orderBy('tanggal_daftar', 'desc')
-                        ->orderBy('nomor_antrian', 'desc')
+        $antrian = $query->orderBy('tanggal_daftar', 'asc')
+                        ->orderBy('nomor_antrian', 'asc')
                         ->paginate(20);
 
         // Set locale Carbon supaya translatedFormat pakai bahasa Indonesia
@@ -158,49 +158,75 @@ class AntrianController extends Controller
         return view('admin.partials.antrian_table', compact('antrian'));
     }
 
-public function downloadPdfDaftar(Request $request)
-{
-    // Set locale Carbon ke Indonesia
-    Carbon::setLocale('id');
-    setlocale(LC_TIME, 'id_ID.utf8'); // penting untuk DomPDF
+    public function downloadPdfDaftar(Request $request)
+    {
+        // Set locale Carbon ke Indonesia
+        Carbon::setLocale('id');
+        setlocale(LC_TIME, 'id_ID.utf8'); // penting untuk DomPDF
 
-    $filter = $request->query('filter', 'all');
-    $date   = $request->query('date', null);
+        $filter = $request->query('filter', 'all');
+        $date   = $request->query('date', null);
 
-    $query = Antrian::query();
+        $query = Antrian::query();
 
-    switch($filter){
-        case 'today':
-            $query->whereDate('tanggal_daftar', now()->toDateString());
-            break;
-        case 'tomorrow':
-            $query->whereDate('tanggal_daftar', now()->addDay()->toDateString());
-            break;
-        case 'custom':
-            if($date) $query->whereDate('tanggal_daftar', $date);
-            break;
-        case 'all':
-        default:
-            break;
+        switch($filter){
+            case 'today':
+                $query->whereDate('tanggal_daftar', now()->toDateString());
+                break;
+            case 'tomorrow':
+                $query->whereDate('tanggal_daftar', now()->addDay()->toDateString());
+                break;
+            case 'custom':
+                if($date) $query->whereDate('tanggal_daftar', $date);
+                break;
+            case 'all':
+            default:
+                break;
+        }
+
+        $antrian = $query->orderBy('tanggal_daftar', 'desc')
+                        ->orderBy('nomor_antrian', 'desc')
+                        ->get();
+
+        return PDF::loadView('admin.exports.antrian_pdf', [
+            'antrians' => $antrian,
+            'filter'   => $filter,
+            'date'     => $date
+        ])->setPaper('a4', 'portrait')
+        ->stream("Daftar_Antrian_{$filter}.pdf");
     }
 
-    $antrian = $query->orderBy('tanggal_daftar', 'desc')
-                     ->orderBy('nomor_antrian', 'desc')
-                     ->get();
+    // ===========================
+    // MONITOR ANTRIAN
+    // ===========================
+    public function monitor()
+    {
+        // Hanya menampilkan view monitor
+        return view('admin.monitor');
+    }
 
-    return PDF::loadView('admin.exports.antrian_pdf', [
-        'antrians' => $antrian,
-        'filter'   => $filter,
-        'date'     => $date
-    ])->setPaper('a4', 'portrait')
-      ->stream("Daftar_Antrian_{$filter}.pdf");
-}
+    public function monitorData()
+    {
+        // Ambil antrian hari ini
+        $today = Carbon::today()->toDateString();
 
+        $dalamProses = Antrian::whereDate('tanggal_daftar', $today)
+                        ->where('status', 'Diproses')
+                        ->orderBy('nomor_antrian', 'asc')
+                        ->get();
 
+        $selesai = Antrian::whereDate('tanggal_daftar', $today)
+                        ->where('status', 'Selesai')
+                        ->orderBy('nomor_antrian', 'desc')
+                        ->get();
 
+        // Antrian yang sedang dipanggil (bisa ambil status pertama dari "Diproses")
+        $current = $dalamProses->first();
 
-
-
-
-
+        return response()->json([
+            'current' => $current,
+            'dalamProses' => $dalamProses,
+            'selesai' => $selesai,
+        ]);
+    }
 }

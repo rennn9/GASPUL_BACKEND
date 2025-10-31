@@ -50,6 +50,15 @@
             flex-grow: 1;
         }
 
+        /* Perbesar Role Badge di sidebar */
+        .sidebar .badge {
+            font-size: 0.95rem; /* lebih besar dari default */
+            padding: 0.5em 0.75em; /* lebih lega */
+            border-radius: 0.5rem; /* rounded lebih jelas */
+            font-weight: 600; /* lebih tegas */
+        }
+
+
         /* App Bar */
         .app-bar {
             height: 60px;
@@ -74,6 +83,54 @@
             color: #fff;
             font-size: 1.4rem;
         }
+
+        /* Pastikan tombol logout selalu merah */
+        .app-bar .btn-danger {
+            background-color: #dc3545; /* merah Bootstrap default */
+            border-color: #dc3545;
+            color: #fff;
+        }
+
+        .app-bar .btn-danger:hover,
+        .app-bar .btn-danger:focus,
+        .app-bar .btn-danger:active {
+            background-color: #c82333; /* versi lebih gelap saat hover/active */
+            border-color: #bd2130;
+            color: #fff;
+        }
+
+        /* Samakan tinggi dan style tombol logout dengan info user */
+        .app-bar .user-logout-container {
+            display: flex;
+            align-items: center;
+            background-color: #dc3545; /* merah tetap muncul */
+            color: #fff;
+            padding: 0 12px; /* sama seperti info user */
+            height: 38px; /* tinggi kontainer info user */
+            border-radius: 50px; /* rounded pill */
+            font-size: 0.9rem; /* sama dengan info user */
+            gap: 6px;
+        }
+
+        .app-bar .user-logout-container i {
+            font-size: 1rem; /* ukuran icon seragam */
+            line-height: 1;
+        }
+
+        .app-bar .user-logout-container button {
+            background: none;
+            border: none;
+            color: #fff;
+            padding: 0;
+            margin: 0;
+            font-size: inherit;
+            cursor: pointer;
+        }
+
+        .app-bar .user-logout-container button:focus {
+            outline: none;
+        }
+
 
         /* Content area */
         .content {
@@ -125,79 +182,85 @@
             </div>
             <div class="sidebar-divider"></div>
 
-<!-- Sidebar Navigation Menu -->
-<p class="fw-bold mt-4">Menu</p>
-<ul class="nav flex-column ms-2">
-    <li class="nav-item mb-2">
-        <a class="nav-link {{ request()->is('admin/statistik*') ? 'active' : '' }}"
-           href="{{ route('admin.statistik') }}">
-            <i class="bi bi-bar-chart-line me-2"></i> <span>Statistik</span>
-        </a>
-    </li>
-    <li class="nav-item mb-2">
-        <a class="nav-link {{ request()->is('admin/dashboard*') ? 'active' : '' }}"
-           href="{{ route('admin.dashboard') }}">
-            <i class="bi bi-card-checklist me-2"></i> <span>Daftar Antrian</span>
-        </a>
-    </li>
-    <li class="nav-item mb-2">
-        <a class="nav-link {{ request()->is('admin/konsultasi*') ? 'active' : '' }}"
-           href="{{ route('admin.konsultasi') }}">
-            <i class="bi bi-chat-dots me-2"></i> <span>Layanan Konsultasi</span>
-        </a>
-    </li>
+            <!-- Sidebar Navigation Menu -->
+            <p class="fw-bold mt-4">Menu</p>
+            <ul class="nav flex-column ms-2">
+                <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/statistik*') ? 'active' : '' }}"
+                       href="{{ route('admin.statistik') }}">
+                        <i class="bi bi-bar-chart-line me-2"></i> <span>Statistik</span>
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/dashboard*') ? 'active' : '' }}"
+                       href="{{ route('admin.dashboard') }}">
+                        <i class="bi bi-card-checklist me-2"></i> <span>Daftar Antrian</span>
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/konsultasi*') ? 'active' : '' }}"
+                       href="{{ route('admin.konsultasi') }}">
+                        <i class="bi bi-chat-dots me-2"></i> <span>Layanan Konsultasi</span>
+                    </a>
+                </li>
 
-    @if(Auth::user()->role === 'superadmin')
-    <li class="nav-item mb-2">
-        <a class="nav-link {{ request()->is('admin/users*') ? 'active' : '' }}"
-           href="{{ route('admin.users.index') }}">
-            <i class="bi bi-people me-2"></i> <span>User Management</span>
-        </a>
-    </li>
-    @endif
-</ul>
+                @if(Auth::user()->role === 'superadmin')
+                <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/users*') ? 'active' : '' }}"
+                       href="{{ route('admin.users.index') }}">
+                        <i class="bi bi-people me-2"></i> <span>User Management</span>
+                    </a>
+                </li>
 
+                <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/monitor*') ? 'active' : '' }}"
+                    href="{{ route('admin.monitor') }}">
+                        <i class="bi bi-display me-2"></i> <span>Monitor Antrian</span>
+                    </a>
+                </li>
 
-
-
+                @endif
+            </ul>
         </div>
 
-        <div>
-            <!-- Logout -->
-            <form action="{{ route('logout') }}" method="POST" class="mt-4">
-                @csrf
-                <button type="submit" class="btn btn-danger w-100">
-                    <i class="bi bi-box-arrow-right"></i> Logout
-                </button>
-            </form>
-            <div class="copyright">
-                © Sistem Informasi dan Data
-            </div>
+        <div class="copyright mt-4">
+            © Sistem Informasi dan Data
         </div>
     </div>
 
     <!-- Main content wrapper -->
     <div class="d-flex flex-column flex-grow-1">
-<!-- App Bar -->
-<div class="app-bar">
-    <div class="left-section">
-        <button id="toggleSidebar" title="Toggle Sidebar">
-            <i class="bi bi-list"></i>
-        </button>
-        <span>Dashboard Admin</span>
+        <!-- App Bar -->
+        <div class="app-bar">
+            <div class="left-section">
+                <button id="toggleSidebar" title="Toggle Sidebar">
+                    <i class="bi bi-list"></i>
+                </button>
+                <span>Dashboard Admin</span>
+            </div>
+
+<!-- User info + Logout kanan -->
+<div class="d-flex align-items-center gap-2">
+    @auth
+    <div class="d-flex align-items-center bg-white text-dark px-3 py-1 rounded-pill shadow-sm">
+        <i class="bi bi-person-fill me-2"></i>
+        <span class="fw-semibold">{{ Auth::user()->name }} ({{ Auth::user()->nip }})</span>
     </div>
 
-    <!-- User info kanan -->
-    <div class="d-flex align-items-center">
-        @auth
-        <div class="d-flex align-items-center bg-white text-dark px-3 py-1 rounded-pill shadow-sm">
-            <i class="bi bi-person-fill me-2"></i>
-            <span class="fw-semibold">{{ Auth::user()->name }} ({{ Auth::user()->nip }})</span>
+    <!-- Logout button versi kontainer sama ukuran dengan info user -->
+    <form action="{{ route('logout') }}" method="POST" class="mb-0">
+        @csrf
+        <div class="user-logout-container">
+            <i class="bi bi-box-arrow-right"></i>
+            <button type="submit">Logout</button>
         </div>
-        @endauth
-    </div>
+    </form>
+    @endauth
 </div>
 
+
+
+        </div>
 
         <!-- Content -->
         <div class="content" id="mainContent">
