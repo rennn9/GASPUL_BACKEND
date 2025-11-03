@@ -53,6 +53,21 @@ html, body {
     text-align: right;
 }
 
+#infoCard .right-info {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    font-weight: bold;
+    text-align: right;
+}
+
+#infoCard .right-info .logo-gaspul {
+    height: 60px;
+    width: auto;
+}
+
+
 /* Row utama 3 kolom */
 #monitorRow {
     flex: 1 1 0;
@@ -139,19 +154,24 @@ html, body {
 </div>
 
 <div id="monitorContainer">
-    <!-- Info Hari, Tanggal, Waktu & Logo -->
-    <div id="infoCard" class="card shadow-sm mb-2">
-        <div class="card-body">
-            <div class="left-info">
-                <img src="{{ asset('assets/images/kemenag.png') }}" alt="Logo GASPUL">
-                <div class="text">
-                    <span>Kementerian Agama</span>
-                    <span>Provinsi Sulawesi Barat</span>
-                </div>
+<!-- Info Hari, Tanggal, Waktu & Logo -->
+<div id="infoCard" class="card shadow-sm mb-2">
+    <div class="card-body">
+        <div class="left-info">
+            <img src="{{ asset('assets/images/kemenag.png') }}" alt="Logo Kemenag">
+            <div class="text">
+                <span>Kementerian Agama</span>
+                <span>Provinsi Sulawesi Barat</span>
             </div>
-            <div class="right-info" id="tanggal-waktu">--:--:--</div>
+        </div>
+
+        <div class="right-info">
+            <div class="time-text" id="tanggal-waktu">--:--:--</div>
+            <img src="{{ asset('assets/images/logo-gaspul.png') }}" alt="Logo GASPUL" class="logo-gaspul">
         </div>
     </div>
+</div>
+
 
     <!-- Row 3 kolom -->
     <div id="monitorRow">
@@ -240,62 +260,100 @@ document.addEventListener("DOMContentLoaded", () => {
     updateDateTime();
     setInterval(updateDateTime, 1000);
 
-    /** Load Data Monitor Antrian **/
-    const loadMonitorData = () => {
-        fetch("{{ route('admin.monitor.data') }}")
-            .then(res => res.json())
-            .then(data => {
-                const dalamProsesEl = document.getElementById("dalam-proses");
-                dalamProsesEl.innerHTML = "";
-                data.dalamProses.forEach(a => {
-                    const container = document.createElement("div");
-                    Object.assign(container.style, {
-                        border: "1px solid #0d6efd",
-                        borderRadius: "0.5rem",
-                        margin: "0.25rem 0",
-                        padding: "0.5rem",
-                        width: "95%",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        backgroundColor: "#e7f1ff"
-                    });
-                    container.innerHTML = `
-                        <span style="font-size: clamp(2rem, 4vw, 3rem); font-weight:bold;">${a.nomor_antrian}</span>
-                        <span style="font-size: clamp(1rem, 1.5vw, 1.2rem); color:#0d6efd;">${a.bidang_layanan}</span>
-                    `;
-                    dalamProsesEl.appendChild(container);
+/** Load Data Monitor Antrian **/
+const loadMonitorData = () => {
+    fetch("{{ route('admin.monitor.data') }}")
+        .then(res => res.json())
+        .then(data => {
+            const dalamProsesEl = document.getElementById("dalam-proses");
+            dalamProsesEl.innerHTML = "";
+            data.dalamProses.forEach(a => {
+                const container = document.createElement("div");
+                Object.assign(container.style, {
+                    border: "1px solid #0d6efd",
+                    borderRadius: "0.5rem",
+                    margin: "0.25rem 0",
+                    padding: "0.5rem",
+                    width: "95%",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    backgroundColor: "#e7f1ff"
                 });
-                document.getElementById("count-proses").textContent = `${data.dalamProses.length} Antrian Dalam Proses`;
-
-                const currentEl = document.getElementById("current-antrian");
-                currentEl.textContent = data.current ? data.current.nomor_antrian : "-";
-
-                const selesaiEl = document.getElementById("selesai");
-                selesaiEl.innerHTML = "";
-                data.selesai.forEach(a => {
-                    const container = document.createElement("div");
-                    Object.assign(container.style, {
-                        border: "1px solid #198754",
-                        borderRadius: "0.5rem",
-                        margin: "0.25rem 0",
-                        padding: "0.5rem",
-                        width: "95%",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        backgroundColor: "#dff6e3"
-                    });
-                    container.innerHTML = `
-                        <span style="font-size: clamp(2rem, 4vw, 3rem); font-weight:bold;">${a.nomor_antrian}</span>
-                        <span style="font-size: clamp(1rem, 1.5vw, 1.2rem); color:#198754;">${a.bidang_layanan}</span>
-                    `;
-                    selesaiEl.appendChild(container);
-                });
+                container.innerHTML = `
+                    <span style="font-size: clamp(2rem, 4vw, 3rem); font-weight:bold;">${a.nomor_antrian}</span>
+                    <span style="font-size: clamp(1rem, 1.5vw, 1.2rem); color:#0d6efd;">${a.bidang_layanan}</span>
+                `;
+                dalamProsesEl.appendChild(container);
             });
-    };
-    loadMonitorData();
-    setInterval(loadMonitorData, 5000);
+
+            document.getElementById("count-proses").textContent =
+                `${data.dalamProses.length} Antrian Dalam Proses`;
+
+            /** NOMOR ANTRIAN SAAT INI **/
+            const currentEl = document.getElementById("current-antrian");
+            const currentNumber = data.current ? data.current.nomor_antrian : "-";
+            currentEl.textContent = currentNumber;
+
+            // Putar audio saat nomor berubah
+            if (data.current && data.current.nomor_antrian) {
+                playAntrianAudio(data.current.nomor_antrian);
+            }
+
+            /** SELESAI **/
+            const selesaiEl = document.getElementById("selesai");
+            selesaiEl.innerHTML = "";
+            data.selesai.forEach(a => {
+                const container = document.createElement("div");
+                Object.assign(container.style, {
+                    border: "1px solid #198754",
+                    borderRadius: "0.5rem",
+                    margin: "0.25rem 0",
+                    padding: "0.5rem",
+                    width: "95%",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    backgroundColor: "#dff6e3"
+                });
+                container.innerHTML = `
+                    <span style="font-size: clamp(2rem, 4vw, 3rem); font-weight:bold;">${a.nomor_antrian}</span>
+                    <span style="font-size: clamp(1rem, 1.5vw, 1.2rem); color:#198754;">${a.bidang_layanan}</span>
+                `;
+                selesaiEl.appendChild(container);
+            });
+        })
+        .catch(err => console.error("Gagal memuat data monitor:", err));
+};
+
+loadMonitorData();
+setInterval(loadMonitorData, 5000);
+
+
+/** 🔊 Fungsi Pemutar Audio **/
+let lastPlayedNumber = null; // Menyimpan nomor terakhir yang sudah diputar
+
+const playAntrianAudio = (nomor) => {
+    if (!nomor || nomor === lastPlayedNumber) return; // Hindari pengulangan
+
+    const nomorInt = parseInt(nomor);
+    if (isNaN(nomorInt) || nomorInt < 1 || nomorInt > 30) return; // batasi hanya 1–30
+
+    const nomorFormatted = nomorInt.toString().padStart(3, '0');
+    const audioPath = `{{ asset('assets/audio') }}/${nomorFormatted}.mp3`;
+
+    const audio = new Audio(audioPath);
+    audio.play()
+        .then(() => {
+            console.log(`🎧 Memutar audio: ${audioPath}`);
+            lastPlayedNumber = nomor;
+        })
+        .catch(err => {
+            console.warn(`⚠️ Tidak dapat memutar audio untuk ${nomorFormatted}.mp3`, err);
+        });
+};
+
+
 
     /** Fullscreen Toggle **/
     const btnFullscreen = document.getElementById('btnFullscreen');
