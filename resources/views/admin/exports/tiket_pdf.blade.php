@@ -120,12 +120,14 @@
                     <div>Tanggal Pelayanan</div>
                     <strong>{{ $tanggal }}</strong>
                 </td>
-                <td style="text-align:right;">
-                    <div>Bidang Layanan</div>
-                    <strong>{{ $bidang }}</strong>
-                    <div>Layanan</div>
-                    <strong>{{ $layanan }}</strong>
-                </td>
+<td style="text-align:right;">
+    <div>Bidang Layanan</div>
+    <strong>{{ $bidang }}</strong>
+    <div>{{ $isKonsultasi ? 'Perihal' : 'Layanan' }}</div>
+    <strong>{{ $layanan }}</strong>
+</td>
+
+
             </tr>
         </table>
     </div>

@@ -4,25 +4,30 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Antrian;
+use App\Models\Konsultasi;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use PDF;
 use Carbon\Carbon;
+use App\Services\TiketService; // ⬅️ Tambahkan ini
+
 
 class AntrianController extends Controller
 {
-    // Submit antrian baru
+    // ===========================
+    // SUBMIT ANTRIAN BARU
+    // ===========================
     public function submit(Request $request)
     {
         try {
             // 1️⃣ Validasi input
             $validated = $request->validate([
-                'nama' => 'required|string|max:255',
-                'no_hp' => 'required|string|max:20',
-                'alamat' => 'required|string',
-                'bidang_layanan' => 'required|string',
-                'layanan' => 'required|string',
-                'tanggal_daftar' => 'required|date',
-                'keterangan' => 'nullable|string',
+                'nama'            => 'required|string|max:255',
+                'no_hp'           => 'required|string|max:20',
+                'alamat'          => 'required|string',
+                'bidang_layanan'  => 'required|string',
+                'layanan'         => 'required|string',
+                'tanggal_daftar'  => 'required|date',
+                'keterangan'      => 'nullable|string',
             ]);
 
             // 2️⃣ Generate nomor antrian (GLOBAL per tanggal)
@@ -30,13 +35,13 @@ class AntrianController extends Controller
             $nomor_antrian = $count + 1;
             $validated['nomor_antrian'] = sprintf('%03d', $nomor_antrian);
 
-            // 3️⃣ Generate QR code SVG base64 (tidak butuh Imagick)
+            // 3️⃣ Generate QR Code Base64
             $qrContent = json_encode([
-                'nomor_antrian' => $validated['nomor_antrian'],
+                'nomor_antrian'  => $validated['nomor_antrian'],
                 'bidang_layanan' => $validated['bidang_layanan'],
                 'tanggal_daftar' => $validated['tanggal_daftar'],
             ]);
-            // Gunakan SVG format yang tidak memerlukan Imagick extension
+
             $validated['qr_code_data'] = base64_encode(
                 QrCode::format('svg')->size(150)->generate($qrContent)
             );
@@ -47,67 +52,52 @@ class AntrianController extends Controller
             // 5️⃣ Simpan ke database
             $antrian = Antrian::create($validated);
 
-            // 6️⃣ Set locale Carbon ke Indonesia
-            Carbon::setLocale('id');
+            // 6️⃣ Generate tiket PDF lewat TiketService
+            $tiket = TiketService::generateTiket($antrian, false);
 
-            // 7️⃣ Pastikan folder tiket ada
-            $tiketPath = public_path('tiket');
-            if (!file_exists($tiketPath)) {
-                mkdir($tiketPath, 0755, true);
-            }
-
-            // 8️⃣ Generate PDF tiket
-            // Lebar 80mm, tinggi 200mm
-            $pdf = PDF::loadView('admin.exports.tiket_pdf', [
-                'nomor'   => $antrian->nomor_antrian,
-                'tanggal' => Carbon::parse($antrian->tanggal_daftar)->translatedFormat('l, d/m/Y'),
-                'bidang'  => $antrian->bidang_layanan,
-                'layanan' => $antrian->layanan,
-                'qrCode'  => $antrian->qr_code_data,
-            ])->setPaper([0, 0, 226.8, 567]); // ukuran dalam mm? atau px tergantung dompdf
-
-
-            // 9️⃣ Simpan PDF ke public/tiket dengan nama unik
-            $pdfFileName = $antrian->tanggal_daftar . '-' . $antrian->nomor_antrian . '.pdf';
-            $pdfPath = public_path("tiket/{$pdfFileName}");
-            $pdf->save($pdfPath);
 
             // 🔟 Kirim respons JSON ke Flutter
             return response()->json([
-                'success' => true,
-                'nomor_antrian' => $antrian->nomor_antrian,
-                'pdf_url' => url("tiket/{$pdfFileName}"),
-                'qr_code_data' => $antrian->qr_code_data,
+                'success'        => true,
+                'nomor_antrian'  => $antrian->nomor_antrian,
+                'pdf_url'        => $tiket['pdf_url'],
+                'qr_code_data'   => $tiket['qr_code_base64'],
             ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } 
+        catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validasi gagal',
-                'errors' => $e->errors()
+                'errors'  => $e->errors(),
             ], 422);
-        } catch (\Exception $e) {
+        } 
+        catch (\Exception $e) {
             \Log::error('Error submit antrian: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat memproses data',
-                'error' => $e->getMessage(),
-                'line' => $e->getLine(),
-                'file' => $e->getFile()
+                'error'   => $e->getMessage(),
+                'line'    => $e->getLine(),
+                'file'    => $e->getFile(),
             ], 500);
         }
     }
 
-    // 🔸 Method index untuk menampilkan semua antrian
+    // ===========================
+    // TAMPILKAN SEMUA ANTRIAN
+    // ===========================
     public function index()
     {
         $antrians = Antrian::orderBy('tanggal_daftar', 'desc')->get();
         return view('admin.antrian.antrian', compact('antrians'));
     }
 
-    // 🔸 Update status via AJAX
+
+    // ===========================
+    // UPDATE STATUS (sinkron ke konsultasi)
+    // ===========================
     public function updateStatus(Request $request)
     {
         $request->validate([
@@ -119,10 +109,33 @@ class AntrianController extends Controller
         $antrian->status = $request->status;
         $antrian->save();
 
+        // 🔄 Sinkronisasi ke tabel konsultasi
+        if ($antrian->konsultasi_id) {
+            $konsultasi = Konsultasi::find($antrian->konsultasi_id);
+
+            if ($konsultasi) {
+                switch ($request->status) {
+                    case 'Diproses':
+                        $konsultasi->status = 'proses';
+                        break;
+                    case 'Selesai':
+                        $konsultasi->status = 'selesai';
+                        break;
+                    case 'Batal':
+                        $konsultasi->status = 'batal';
+                        break;
+                }
+                $konsultasi->save();
+            }
+        }
+
         return response()->json(['success' => true]);
     }
 
-    // 🔸 Partial table untuk AJAX refresh
+
+    // ===========================
+    // PARTIAL TABEL (AJAX)
+    // ===========================
     public function table(Request $request)
     {
         $filter = $request->query('filter', 'all');
@@ -130,8 +143,7 @@ class AntrianController extends Controller
 
         $query = Antrian::query();
 
-        // Filter berdasarkan tab
-        switch($filter){
+        switch ($filter) {
             case 'today':
                 $query->whereDate('tanggal_daftar', now()->toDateString());
                 break;
@@ -139,37 +151,63 @@ class AntrianController extends Controller
                 $query->whereDate('tanggal_daftar', now()->addDay()->toDateString());
                 break;
             case 'custom':
-                if($date) $query->whereDate('tanggal_daftar', $date);
+                if ($date) $query->whereDate('tanggal_daftar', $date);
                 break;
             case 'all':
             default:
-                // tanpa filter tanggal
                 break;
         }
 
-        // Urutkan berdasarkan tanggal & nomor antrian dan gunakan pagination (20 data per halaman)
         $antrian = $query->orderBy('tanggal_daftar', 'asc')
-                        ->orderBy('nomor_antrian', 'asc')
-                        ->paginate(20);
+                         ->orderBy('nomor_antrian', 'asc')
+                         ->paginate(20);
 
-        // Set locale Carbon supaya translatedFormat pakai bahasa Indonesia
         Carbon::setLocale('id');
 
         return view('admin.partials.antrian_table', compact('antrian'));
     }
 
+public function delete(Request $request)
+{
+    $request->validate([
+        'id' => 'required|exists:antrian,id'
+    ]);
+
+    $antrian = Antrian::findOrFail($request->id);
+
+    try {
+        // Hapus konsultasi terkait jika ada
+        if ($antrian->konsultasi_id) {
+            $konsultasi = Konsultasi::find($antrian->konsultasi_id);
+            if ($konsultasi) {
+                $konsultasi->delete();
+            }
+        }
+
+        // Hapus antrian
+        $antrian->delete();
+
+        return response()->json(['success' => true]);
+    } catch (\Exception $e) {
+        \Log::error('Gagal hapus antrian: ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => 'Gagal menghapus antrian']);
+    }
+}
+
+    // ===========================
+    // DOWNLOAD PDF DAFTAR
+    // ===========================
     public function downloadPdfDaftar(Request $request)
     {
-        // Set locale Carbon ke Indonesia
         Carbon::setLocale('id');
-        setlocale(LC_TIME, 'id_ID.utf8'); // penting untuk DomPDF
+        setlocale(LC_TIME, 'id_ID.utf8');
 
         $filter = $request->query('filter', 'all');
         $date   = $request->query('date', null);
 
         $query = Antrian::query();
 
-        switch($filter){
+        switch ($filter) {
             case 'today':
                 $query->whereDate('tanggal_daftar', now()->toDateString());
                 break;
@@ -177,7 +215,7 @@ class AntrianController extends Controller
                 $query->whereDate('tanggal_daftar', now()->addDay()->toDateString());
                 break;
             case 'custom':
-                if($date) $query->whereDate('tanggal_daftar', $date);
+                if ($date) $query->whereDate('tanggal_daftar', $date);
                 break;
             case 'all':
             default:
@@ -185,48 +223,48 @@ class AntrianController extends Controller
         }
 
         $antrian = $query->orderBy('tanggal_daftar', 'desc')
-                        ->orderBy('nomor_antrian', 'desc')
-                        ->get();
+                         ->orderBy('nomor_antrian', 'desc')
+                         ->get();
 
         return PDF::loadView('admin.exports.antrian_pdf', [
             'antrians' => $antrian,
             'filter'   => $filter,
             'date'     => $date
-        ])->setPaper('a4', 'portrait')
+        ])
+        ->setPaper('a4', 'portrait')
         ->stream("Daftar_Antrian_{$filter}.pdf");
     }
+
 
     // ===========================
     // MONITOR ANTRIAN
     // ===========================
     public function monitor()
     {
-        // Hanya menampilkan view monitor
         return view('admin.monitor');
     }
 
+
     public function monitorData()
     {
-        // Ambil antrian hari ini
         $today = Carbon::today()->toDateString();
 
         $dalamProses = Antrian::whereDate('tanggal_daftar', $today)
-                        ->where('status', 'Diproses')
-                        ->orderBy('nomor_antrian', 'asc')
-                        ->get();
+            ->where('status', 'Diproses')
+            ->orderBy('nomor_antrian', 'asc')
+            ->get();
 
         $selesai = Antrian::whereDate('tanggal_daftar', $today)
-                        ->where('status', 'Selesai')
-                        ->orderBy('nomor_antrian', 'desc')
-                        ->get();
+            ->where('status', 'Selesai')
+            ->orderBy('nomor_antrian', 'desc')
+            ->get();
 
-        // Antrian yang sedang dipanggil (bisa ambil status pertama dari "Diproses")
         $current = $dalamProses->first();
 
         return response()->json([
-            'current' => $current,
-            'dalamProses' => $dalamProses,
-            'selesai' => $selesai,
+            'current'      => $current,
+            'dalamProses'  => $dalamProses,
+            'selesai'      => $selesai,
         ]);
     }
 }

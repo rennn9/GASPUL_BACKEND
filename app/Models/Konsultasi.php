@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Konsultasi extends Model
 {
-    // Specify table name explicitly (Laravel default would be 'konsultasis')
     protected $table = 'konsultasi';
 
     protected $fillable = [
@@ -23,4 +22,10 @@ class Konsultasi extends Model
     protected $casts = [
         'tanggal_konsultasi' => 'datetime',
     ];
+
+    // 💡 Tambahkan relasi ke Antrian
+    public function antrian()
+    {
+        return $this->hasOne(Antrian::class, 'konsultasi_id');
+    }
 }

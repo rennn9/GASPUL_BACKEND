@@ -12,6 +12,7 @@ class Antrian extends Model
     protected $table = 'antrian';
 
     protected $fillable = [
+        'konsultasi_id',   // 🔹 tambahkan ini untuk relasi
         'nama',
         'no_hp',
         'alamat',
@@ -23,4 +24,14 @@ class Antrian extends Model
         'qr_code_data',
         'status',
     ];
+
+    protected $casts = [
+        'tanggal_daftar' => 'date',
+    ];
+
+    // 🔹 Relasi ke model Konsultasi
+    public function konsultasi()
+    {
+        return $this->belongsTo(\App\Models\Konsultasi::class, 'konsultasi_id');
+    }
 }

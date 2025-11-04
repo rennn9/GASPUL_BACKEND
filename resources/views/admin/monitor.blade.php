@@ -160,7 +160,7 @@ html, body {
         <div class="left-info">
             <img src="{{ asset('assets/images/kemenag.png') }}" alt="Logo Kemenag">
             <div class="text">
-                <span>Kementerian Agama</span>
+                <span>KanWil Kementerian Agama</span>
                 <span>Provinsi Sulawesi Barat</span>
             </div>
         </div>

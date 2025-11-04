@@ -11,7 +11,7 @@
         <form method="GET" action="{{ route('admin.konsultasi') }}" class="d-flex gap-2 align-items-end">
             <div class="mb-0">
                 <label class="form-label">Filter Status</label>
-                <select name="status" id="statusFilter" class="form-select" onchange="this.form.submit()">
+                <select name="status" id="statusFilter" class="form-select">
                     <option value="semua" {{ request('status') == 'semua' ? 'selected' : '' }}>Semua Status</option>
                     <option value="baru" {{ request('status') == 'baru' ? 'selected' : '' }}>Baru</option>
                     <option value="proses" {{ request('status') == 'proses' ? 'selected' : '' }}>Proses</option>
@@ -31,11 +31,12 @@
 {{-- Tabel Konsultasi --}}
 <div class="card shadow-sm">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered table-striped table-hover">
+        <div class="table-responsive" id="konsultasi-table-container">
+            <table class="table table-bordered table-striped table-hover" id="konsultasi-table">
                 <thead class="table-light">
                     <tr>
                         <th>No</th>
+                        <th>Nomor Antrian</th>
                         <th>Nama Pemohon</th>
                         <th>No HP/WA</th>
                         <th>Email</th>
@@ -49,8 +50,9 @@
                 </thead>
                 <tbody>
                     @forelse($konsultasis as $index => $item)
-                    <tr>
+                    <tr id="konsultasi-row-{{ $item->id }}">
                         <td>{{ $konsultasis->firstItem() + $index }}</td>
+                        <td>{{ $item->antrian ? $item->antrian->nomor_antrian : '-' }}</td>
                         <td>{{ $item->nama_lengkap }}</td>
                         <td>{{ $item->no_hp }}</td>
                         <td>{{ $item->email ?? '-' }}</td>
@@ -77,18 +79,14 @@
                         </td>
                         <td>{{ \Carbon\Carbon::parse($item->tanggal_konsultasi)->translatedFormat('d/m/Y H:i') }}</td>
                         <td>
-                            <form action="{{ route('admin.konsultasi.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus data ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                            <button class="btn btn-sm btn-danger delete-btn" data-id="{{ $item->id }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="text-center text-muted py-4">Belum ada data konsultasi.</td>
+                        <td colspan="11" class="text-center text-muted py-4">Belum ada data konsultasi.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -114,38 +112,25 @@ document.addEventListener("DOMContentLoaded", function(){
     const downloadBtn = document.getElementById('download-pdf-btn');
     const downloadText = document.getElementById('download-pdf-text');
 
-    // Fungsi update title & text PDF
+    // Update tombol download
     function updateDownloadTitle() {
         const selected = statusSelect.options[statusSelect.selectedIndex].text;
         downloadText.textContent = `Download daftar konsultasi - ${selected.toLowerCase()}`;
         downloadBtn.title = `Download daftar konsultasi - ${selected.toLowerCase()}`;
     }
-
     updateDownloadTitle();
-
-    // Event klik download
-downloadBtn.onclick = function(){
-    const status = statusSelect.value;
-downloadBtn.onclick = function(){
-    const status = statusSelect.value;
-    fetch("{{ route('admin.konsultasi.pdf') }}?status=" + status)
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) {
-                // ✅ Buka PDF di tab baru
-                window.open(data.url, '_blank');
-            } else {
-                alert('Gagal generate PDF');
-            }
-        })
-        .catch(() => alert('Terjadi error saat generate PDF'));
-};
-
-};
-
-
-    // Update saat filter berubah
     statusSelect.addEventListener('change', updateDownloadTitle);
+
+    downloadBtn.onclick = function(){
+        const status = statusSelect.value;
+        fetch("{{ route('admin.konsultasi.pdf') }}?status=" + status)
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) window.open(data.url, '_blank');
+                else alert('Gagal generate PDF');
+            })
+            .catch(() => alert('Terjadi error saat generate PDF'));
+    };
 
     // Status dropdown warna
     function applyStatusColor(selectEl){
@@ -158,28 +143,59 @@ downloadBtn.onclick = function(){
         }
     }
 
-    document.querySelectorAll('.status-dropdown').forEach(dropdown => {
-        applyStatusColor(dropdown);
-        dropdown.onchange = function(){
-            const id = this.dataset.id;
-            const status = this.value;
+    // Attach status change event
+    function attachStatusEvents() {
+        document.querySelectorAll('.status-dropdown').forEach(dropdown => {
+            applyStatusColor(dropdown);
+            dropdown.onchange = function(){
+                const id = this.dataset.id;
+                const status = this.value;
+                fetch("{{ url('admin/konsultasi/status') }}/" + id, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({ status })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if(data.success) applyStatusColor(this);
+                    else alert('Gagal update status');
+                })
+                .catch(() => alert('Terjadi error saat update status'));
+            };
+        });
+    }
 
-            fetch("{{ url('admin/konsultasi/status') }}/" + id, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-                body: JSON.stringify({ status })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if(data.success) applyStatusColor(this);
-                else alert('Gagal update status');
-            })
-            .catch(() => alert('Terjadi error saat update status'));
-        }
-    });
+    // Attach delete button event
+    function attachDeleteEvents() {
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.onclick = function(){
+                if(!confirm("Yakin ingin menghapus data konsultasi ini?")) return;
+                const id = this.dataset.id;
+                fetch("{{ url('admin/konsultasi') }}/" + id, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if(data.success){
+                        const row = document.getElementById(`konsultasi-row-${id}`);
+                        if(row) row.remove();
+                        if(typeof refreshAntrianTable === 'function') refreshAntrianTable(false);
+                    } else alert('Gagal menghapus data');
+                })
+                .catch(() => alert('Terjadi error saat menghapus data'));
+            };
+        });
+    }
+
+    attachStatusEvents();
+    attachDeleteEvents();
 });
 </script>
 

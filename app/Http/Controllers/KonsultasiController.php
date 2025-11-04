@@ -3,10 +3,15 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Models\Konsultasi;
+use App\Models\Antrian;
 use Carbon\Carbon;
 use PDF;
+use Illuminate\Support\Str;
+use App\Services\TiketService;
+
 
 class KonsultasiController extends Controller
 {
@@ -38,6 +43,7 @@ class KonsultasiController extends Controller
         return view('admin.konsultasi.index', compact('konsultasis'));
     }
 
+
     // 🔹 Menampilkan detail konsultasi
     public function show($id)
     {
@@ -52,7 +58,8 @@ class KonsultasiController extends Controller
         return view('admin.konsultasi.show', compact('konsultasi'));
     }
 
-    // 🔹 Mengubah status konsultasi
+
+    // 🔹 Mengubah status konsultasi + sinkron ke tabel antrian
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
@@ -61,19 +68,40 @@ class KonsultasiController extends Controller
 
         $konsultasi = Konsultasi::findOrFail($id);
         $oldStatus = $konsultasi->status;
-        $konsultasi->status = $request->status;
+        $newStatus = $request->status;
+
+        $konsultasi->status = $newStatus;
         $konsultasi->save();
+
+        // 🔹 Sinkronkan status ke tabel antrian (jika ada relasi)
+        $antrian = Antrian::where('konsultasi_id', $konsultasi->id)->first();
+
+        if ($antrian) {
+            $mapStatus = [
+                'baru' => 'Diproses',
+                'proses' => 'Diproses',
+                'selesai' => 'Selesai',
+                'batal' => 'Batal',
+            ];
+
+            $antrian->status = $mapStatus[$newStatus] ?? 'Diproses';
+            $antrian->save();
+        }
 
         Log::info("Status konsultasi diubah", [
             'admin_id' => auth()->id(),
             'konsultasi_id' => $id,
             'old_status' => $oldStatus,
-            'new_status' => $request->status,
+            'new_status' => $newStatus,
             'timestamp' => now()
         ]);
 
-        return response()->json(['success' => true, 'message' => 'Status berhasil diupdate']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Status berhasil diupdate'
+        ]);
     }
+
 
     // 🔹 Menghapus data konsultasi
     public function destroy($id)
@@ -84,6 +112,8 @@ class KonsultasiController extends Controller
             \Storage::disk('public')->delete($konsultasi->dokumen);
         }
 
+        // 🔹 Hapus juga antrian terkait
+        Antrian::where('konsultasi_id', $konsultasi->id)->delete();
         $konsultasi->delete();
 
         Log::info("Konsultasi dihapus", [
@@ -92,53 +122,109 @@ class KonsultasiController extends Controller
             'timestamp' => now()
         ]);
 
-        return redirect()->route('admin.konsultasi')->with('success', 'Data konsultasi berhasil dihapus');
+        return redirect()
+            ->route('admin.konsultasi')
+            ->with('success', 'Data konsultasi berhasil dihapus');
     }
 
-    // 🔹 API: Menyimpan data baru dari Android
+
+    // 🔹 API: Menyimpan data baru dari Android + generate antrian otomatis
     public function store(Request $request)
     {
         $validated = $request->validate([
             'nama_lengkap' => 'required|string|max:255',
-            'no_hp' => 'required|string|max:20',
-            'email' => 'nullable|email',
-            'perihal' => 'required|string|max:255',
+            'no_hp'        => 'required|string|max:20',
+            'email'        => 'nullable|email',
+            'perihal'      => 'required|string|max:255',
             'isi_konsultasi' => 'required|string',
-            'dokumen' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
+            'dokumen'      => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
         ]);
 
-        $filePath = null;
-        if ($request->hasFile('dokumen')) {
-            $filePath = $request->file('dokumen')->store('konsultasi', 'public');
+        DB::beginTransaction();
+
+        try {
+            // 🔹 Upload dokumen jika ada
+            $filePath = null;
+            if ($request->hasFile('dokumen')) {
+                $file = $request->file('dokumen');
+                $filename = time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+                $filePath = $file->storeAs('konsultasi', $filename, 'public');
+            }
+
+            // 🔹 Buat entri konsultasi
+            $konsultasi = Konsultasi::create([
+                'nama_lengkap' => $validated['nama_lengkap'],
+                'no_hp' => $validated['no_hp'],
+                'email' => $validated['email'] ?? null,
+                'perihal' => $validated['perihal'],
+                'isi_konsultasi' => $validated['isi_konsultasi'],
+                'dokumen' => $filePath,
+                'status' => 'baru',
+                'tanggal_konsultasi' => now(),
+            ]);
+
+            // 🔹 Generate nomor antrian otomatis per tanggal
+            $today = Carbon::today()->toDateString();
+            $lastQueue = Antrian::whereDate('tanggal_daftar', $today)->max('nomor_antrian');
+            $nextQueue = $lastQueue ? $lastQueue + 1 : 1;
+            $nomorAntrian = sprintf('%03d', $nextQueue);
+
+            // 🔹 Buat entri antrian terhubung
+            $antrian = Antrian::create([
+                'konsultasi_id' => $konsultasi->id,
+                'nama' => $konsultasi->nama_lengkap,
+                'no_hp' => $konsultasi->no_hp,
+                'alamat' => 'Tidak ada alamat (form konsultasi)',
+                'bidang_layanan' => 'Konsultasi',
+                'layanan' => $konsultasi->perihal,
+                'tanggal_daftar' => Carbon::now(),
+                'keterangan' => 'Dari form konsultasi',
+                'nomor_antrian' => $nomorAntrian,
+                'qr_code_data' => 'KONSULTASI-' . $konsultasi->id,
+                'status' => 'Diproses',
+            ]);
+
+// 🔹 Generate tiket PDF
+$tiket = TiketService::generateTiket($antrian, true);
+
+DB::commit();
+
+Log::info("Konsultasi baru dibuat via API + Antrian otomatis", [
+    'konsultasi_id' => $konsultasi->id,
+    'antrian_id' => $antrian->id,
+    'nama_lengkap' => $konsultasi->nama_lengkap,
+    'no_hp' => $konsultasi->no_hp,
+    'perihal' => $konsultasi->perihal,
+    'nomor_antrian' => $antrian->nomor_antrian,
+    'timestamp' => now()
+]);
+
+return response()->json([
+    'success'       => true,
+    'message'       => 'Konsultasi dan antrian berhasil dibuat',
+    'nomor_antrian' => $antrian->nomor_antrian,
+    'pdf_url'       => $tiket['pdf_url'],
+], 200);
+
+
+
+        } catch (\Throwable $th) {
+            DB::rollBack();
+
+            Log::error("Gagal menyimpan konsultasi", [
+                'error' => $th->getMessage(),
+                'timestamp' => now()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $th->getMessage(),
+            ], 500);
         }
-
-        $konsultasi = Konsultasi::create([
-            'nama_lengkap' => $validated['nama_lengkap'],
-            'no_hp' => $validated['no_hp'],
-            'email' => $validated['email'] ?? null,
-            'perihal' => $validated['perihal'],
-            'isi_konsultasi' => $validated['isi_konsultasi'],
-            'dokumen' => $filePath,
-            'status' => 'baru',
-            'tanggal_konsultasi' => now(),
-        ]);
-
-        Log::info("Konsultasi baru dibuat via API", [
-            'konsultasi_id' => $konsultasi->id,
-            'nama_lengkap' => $konsultasi->nama_lengkap,
-            'no_hp' => $konsultasi->no_hp,
-            'email' => $konsultasi->email,
-            'perihal' => $konsultasi->perihal,
-            'timestamp' => now()
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Konsultasi berhasil dikirim'
-        ], 200);
     }
 
-    // 🔹 Download PDF dengan log lengkap
+
+    // 🔹 Download PDF daftar konsultasi
     public function downloadPdf(Request $request)
     {
         Log::info('🟢 downloadPdf() dipanggil oleh admin', [
@@ -146,14 +232,17 @@ class KonsultasiController extends Controller
             'query_string' => $request->query(),
             'timestamp' => now()
         ]);
+
         $status = $request->query('status', 'semua');
         $query = Konsultasi::query();
-        if ($status !== 'semua') $query->where('status', $status);
-        $konsultasis = $query->orderBy('tanggal_konsultasi', 'desc')->get();
 
+        if ($status !== 'semua') {
+            $query->where('status', $status);
+        }
+
+        $konsultasis = $query->orderBy('tanggal_konsultasi', 'desc')->get();
         Carbon::setLocale('id');
 
-        // ✅ Tambahkan logging di sini
         Log::info("Admin mendownload PDF daftar konsultasi", [
             'admin_id' => auth()->id(),
             'status_filter' => $status,
@@ -167,12 +256,11 @@ class KonsultasiController extends Controller
                 'status' => $status
             ])->setPaper('a4', 'portrait');
 
-            // simpan ke storage/public
             $fileName = "Daftar_Konsultasi_{$status}.pdf";
             $path = "konsultasi_pdf/{$fileName}";
+
             \Storage::disk('public')->put($path, $pdf->output());
 
-            // kembalikan URL publik
             return response()->json([
                 'success' => true,
                 'url' => asset('storage/' . $path)
@@ -184,6 +272,7 @@ class KonsultasiController extends Controller
                 'admin_id' => auth()->id(),
                 'timestamp' => now()
             ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal generate PDF'

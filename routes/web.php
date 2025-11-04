@@ -59,6 +59,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/antrian/download', [AntrianController::class, 'downloadPdfDaftar'])
         ->name('antrian.download.daftar');
 
+    Route::post('/antrian/delete', [AntrianController::class, 'delete'])
+        ->name('antrian.delete');
+
     // -----------------------
     // Monitor Antrian (Accessible by Superadmin, Admin, and Operator)
     // -----------------------

@@ -10,11 +10,12 @@
             <th>Layanan</th>
             <th>Tanggal Daftar</th>
             <th>Status</th>
+            <th>Aksi</th> {{-- kolom baru --}}
         </tr>
     </thead>
     <tbody>
         @forelse($antrian as $index => $item)
-        <tr>
+        <tr id="antrian-row-{{ $item->id }}">
             <td>{{ $antrian->firstItem() + $index }}</td>
             <td>{{ $item->nomor_antrian }}</td>
             <td>{{ $item->nama }}</td>
@@ -30,14 +31,21 @@
                     <option value="Batal" {{ $item->status==='Batal'?'selected':'' }}>Batal</option>
                 </select>
             </td>
+            <td>
+<button class="btn btn-danger btn-sm delete-btn" data-id="{{ $item->id }}" title="Hapus">
+    <i class="bi bi-trash"></i>
+</button>
+
+            </td>
         </tr>
         @empty
         <tr>
-            <td colspan="9" class="text-center text-muted py-4">Belum ada data antrian.</td>
+            <td colspan="10" class="text-center text-muted py-4">Belum ada data antrian.</td>
         </tr>
         @endforelse
     </tbody>
 </table>
+
 
 {{-- Pagination Links --}}
 <div class="d-flex justify-content-between align-items-center mt-3">

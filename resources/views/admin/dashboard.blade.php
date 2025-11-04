@@ -6,32 +6,32 @@
 {{-- ============================= --}}
 {{-- TabBar Filter Tanggal Antrian --}}
 {{-- ============================= --}}
-<div class="mb-3">
+<div class="mb-3 d-flex align-items-center justify-content-start">
     <ul class="nav nav-tabs" id="antrianTab" role="tablist">
-        {{-- Tab Semua --}}
+        {{-- Tab Hari Ini (default) --}}
         <li class="nav-item">
-            <button class="nav-link active" data-filter="all" type="button">Semua</button>
-        </li>
-        {{-- Tab Hari Ini --}}
-        <li class="nav-item">
-            <button class="nav-link" data-filter="today" type="button">Hari Ini</button>
+            <button class="nav-link active" data-filter="today" type="button">Hari Ini</button>
         </li>
         {{-- Tab Besok --}}
         <li class="nav-item">
             <button class="nav-link" data-filter="tomorrow" type="button">Besok</button>
+        </li>
+        {{-- Tab Semua --}}
+        <li class="nav-item">
+            <button class="nav-link" data-filter="all" type="button">Semua</button>
         </li>
         {{-- Tab Pilih Tanggal (custom) --}}
         <li class="nav-item">
             <input type="date" id="customDate" class="form-control" style="display:inline-block; width:auto;">
         </li>
     </ul>
-</div>
 
-<!-- Tombol Download PDF dengan Icon -->
-<button id="download-pdf-btn" class="btn btn-success mb-3">
-    <i class="bi bi-file-earmark-pdf"></i>
-    <span id="download-pdf-label">Download Daftar Antrian Semua</span>
-</button>
+    {{-- Tombol Download PDF sebelah kanan --}}
+    <button id="download-pdf-btn" class="btn btn-success ms-3">
+        <i class="bi bi-file-earmark-pdf"></i>
+        <span id="download-pdf-label">Download Daftar Antrian</span>
+    </button>
+</div>
 
 {{-- ============================= --}}
 {{-- Container Tabel Antrian --}}
@@ -44,47 +44,43 @@
 document.addEventListener("DOMContentLoaded", function(){
 
     // ===== Variabel global =====
-    let currentFilter = 'all'; // default = semua
-    let currentDate = null;    // hanya digunakan jika filter = 'custom'
-    let currentPage = 1;       // halaman pagination saat ini
+    let currentFilter = 'today'; // default = hari ini
+    let currentDate = null;      
+    let currentPage = 1;       
 
     const downloadBtn = document.getElementById('download-pdf-btn');
 
-    // ===== Fungsi untuk update label tombol download =====
-function updateDownloadButtonLabel() {
-    let label = "Download Daftar Antrian ";
-    switch (currentFilter) {
-        case 'today': label += "Hari Ini"; break;
-        case 'tomorrow': label += "Besok"; break;
-        case 'custom': 
-            if (currentDate) {
-                const tanggal = new Date(currentDate);
-                const tglFormatted = tanggal.toLocaleDateString('id-ID', {
-                    day: '2-digit', month: 'long', year: 'numeric'
-                });
-                label += tglFormatted;
-            } else {
-                label += "(Pilih Tanggal)";
-            }
-            break;
-        default: label += "Semua";
+    // ===== Update label tombol download =====
+    function updateDownloadButtonLabel() {
+        let label = "Download Daftar Antrian ";
+        switch (currentFilter) {
+            case 'today': label += "Hari Ini"; break;
+            case 'tomorrow': label += "Besok"; break;
+            case 'custom': 
+                if (currentDate) {
+                    const tanggal = new Date(currentDate);
+                    const tglFormatted = tanggal.toLocaleDateString('id-ID', {
+                        day: '2-digit', month: 'long', year: 'numeric'
+                    });
+                    label += tglFormatted;
+                } else {
+                    label += "(Pilih Tanggal)";
+                }
+                break;
+            default: label += "Semua";
+        }
+        document.getElementById('download-pdf-label').textContent = label;
     }
 
-    document.getElementById('download-pdf-label').textContent = label;
-}
-
-
-    // ===== Fungsi tombol download =====
+    // ===== Tombol download =====
     downloadBtn.onclick = function() {
         let url = "{{ route('admin.antrian.download.daftar') }}";
         url += "?filter=" + currentFilter;
-        if (currentFilter === 'custom' && currentDate) {
-            url += "&date=" + currentDate;
-        }
+        if(currentFilter === 'custom' && currentDate) url += "&date=" + currentDate;
         window.open(url, '_blank');
     };
 
-    // ===== Fungsi untuk memberi warna pada dropdown status =====
+    // ===== Warna dropdown status =====
     function applyStatusColor(selectEl){
         selectEl.classList.remove('bg-primary','bg-success','bg-danger','text-white');
         switch(selectEl.value){
@@ -94,7 +90,7 @@ function updateDownloadButtonLabel() {
         }
     }
 
-    // ===== Fungsi attach event pada dropdown status =====
+    // ===== Event dropdown status =====
     function attachDropdownEvents(){
         document.querySelectorAll('.status-dropdown').forEach(dropdown=>{
             applyStatusColor(dropdown);
@@ -116,7 +112,35 @@ function updateDownloadButtonLabel() {
         });
     }
 
-    // ===== Fungsi attach event pada pagination links =====
+    // ===== Event delete =====
+    function attachDeleteEvents() {
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.onclick = function(){
+                if(!confirm("Apakah Anda yakin ingin menghapus antrian ini?")) return;
+                const id = this.dataset.id;
+                fetch("{{ route('admin.antrian.delete') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({id: id})
+                })
+                .then(r => r.json())
+                .then(d => {
+                    if(d.success){
+                        const row = document.getElementById(`antrian-row-${id}`);
+                        if(row) row.remove();
+                    } else {
+                        alert("Gagal menghapus antrian");
+                    }
+                })
+                .catch(e => { console.error(e); alert("Error menghapus antrian"); });
+            }
+        });
+    }
+
+    // ===== Event pagination =====
     function attachPaginationEvents(){
         document.querySelectorAll('.pagination a').forEach(link => {
             link.onclick = function(e){
@@ -128,7 +152,7 @@ function updateDownloadButtonLabel() {
         });
     }
 
-    // ===== Fungsi refresh tabel antrian via AJAX =====
+    // ===== Refresh tabel AJAX =====
     function refreshAntrianTable(resetPage = true){
         if(resetPage) currentPage = 1;
 
@@ -151,13 +175,17 @@ function updateDownloadButtonLabel() {
 
                 attachDropdownEvents();
                 attachPaginationEvents();
+                attachDeleteEvents();
             });
     }
 
     // ===== Inisialisasi =====
     attachDropdownEvents();
     attachPaginationEvents();
+    attachDeleteEvents();
     updateDownloadButtonLabel();
+    refreshAntrianTable(); // pastikan urutan ascending sejak awal
+
     setInterval(() => refreshAntrianTable(false), 5000);
 
     // ===== Event TabBar filter =====
