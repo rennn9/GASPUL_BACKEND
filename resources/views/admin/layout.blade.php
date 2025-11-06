@@ -19,7 +19,7 @@
         .sidebar {
             width: 260px;
             flex-shrink: 0;
-            height: 100vh; /* full viewport height */
+            height: 100vh;
             background-color: #017787;
             display: flex;
             flex-direction: column;
@@ -50,19 +50,18 @@
             flex-grow: 1;
         }
 
-        /* Perbesar Role Badge di sidebar */
+        /* Perbesar Role Badge */
         .sidebar .badge {
-            font-size: 0.95rem; /* lebih besar dari default */
-            padding: 0.5em 0.75em; /* lebih lega */
-            border-radius: 0.5rem; /* rounded lebih jelas */
-            font-weight: 600; /* lebih tegas */
+            font-size: 0.95rem;
+            padding: 0.5em 0.75em;
+            border-radius: 0.5rem;
+            font-weight: 600;
         }
-
 
         /* App Bar */
         .app-bar {
             height: 60px;
-            background-color: #017787; /* sama dengan sidebar */
+            background-color: #017787;
             color: #fff;
             display: flex;
             align-items: center;
@@ -84,39 +83,22 @@
             font-size: 1.4rem;
         }
 
-        /* Pastikan tombol logout selalu merah */
-        .app-bar .btn-danger {
-            background-color: #dc3545; /* merah Bootstrap default */
-            border-color: #dc3545;
-            color: #fff;
-        }
-
-        .app-bar .btn-danger:hover,
-        .app-bar .btn-danger:focus,
-        .app-bar .btn-danger:active {
-            background-color: #c82333; /* versi lebih gelap saat hover/active */
-            border-color: #bd2130;
-            color: #fff;
-        }
-
-        /* Samakan tinggi dan style tombol logout dengan info user */
+        /* Tombol logout */
         .app-bar .user-logout-container {
             display: flex;
             align-items: center;
-            background-color: #dc3545; /* merah tetap muncul */
+            background-color: #dc3545;
             color: #fff;
-            padding: 0 12px; /* sama seperti info user */
-            height: 38px; /* tinggi kontainer info user */
-            border-radius: 50px; /* rounded pill */
-            font-size: 0.9rem; /* sama dengan info user */
+            padding: 0 12px;
+            height: 38px;
+            border-radius: 50px;
+            font-size: 0.9rem;
             gap: 6px;
         }
-
         .app-bar .user-logout-container i {
-            font-size: 1rem; /* ukuran icon seragam */
+            font-size: 1rem;
             line-height: 1;
         }
-
         .app-bar .user-logout-container button {
             background: none;
             border: none;
@@ -126,11 +108,6 @@
             font-size: inherit;
             cursor: pointer;
         }
-
-        .app-bar .user-logout-container button:focus {
-            outline: none;
-        }
-
 
         /* Content area */
         .content {
@@ -205,17 +182,25 @@
                     </a>
                 </li>
 
-                {{-- Monitor Antrian: Accessible by Superadmin, Admin, and Operator --}}
+                {{-- Survey Kepuasan --}}
+                <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/survey*') ? 'active' : '' }}"
+                       href="{{ route('admin.survey.index') }}">
+                        <i class="bi bi-ui-checks-grid me-2"></i> <span>Survey Kepuasan</span>
+                    </a>
+                </li>
+
+                {{-- Monitor Antrian --}}
                 @if(in_array(Auth::user()->role, ['superadmin', 'admin', 'operator']))
                 <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/monitor*') ? 'active' : '' }}"
-                    href="{{ route('admin.monitor') }}">
+                       href="{{ route('admin.monitor') }}">
                         <i class="bi bi-display me-2"></i> <span>Monitor Antrian</span>
                     </a>
                 </li>
                 @endif
 
-                {{-- User Management: Only Superadmin --}}
+                {{-- User Management (Superadmin only) --}}
                 @if(Auth::user()->role === 'superadmin')
                 <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/users*') ? 'active' : '' }}"
@@ -243,27 +228,23 @@
                 <span>Dashboard Admin</span>
             </div>
 
-<!-- User info + Logout kanan -->
-<div class="d-flex align-items-center gap-2">
-    @auth
-    <div class="d-flex align-items-center bg-white text-dark px-3 py-1 rounded-pill shadow-sm">
-        <i class="bi bi-person-fill me-2"></i>
-        <span class="fw-semibold">{{ Auth::user()->name }} ({{ Auth::user()->nip }})</span>
-    </div>
+            <!-- User info + Logout -->
+            <div class="d-flex align-items-center gap-2">
+                @auth
+                <div class="d-flex align-items-center bg-white text-dark px-3 py-1 rounded-pill shadow-sm">
+                    <i class="bi bi-person-fill me-2"></i>
+                    <span class="fw-semibold">{{ Auth::user()->name }} ({{ Auth::user()->nip }})</span>
+                </div>
 
-    <!-- Logout button versi kontainer sama ukuran dengan info user -->
-    <form action="{{ route('logout') }}" method="POST" class="mb-0">
-        @csrf
-        <div class="user-logout-container">
-            <i class="bi bi-box-arrow-right"></i>
-            <button type="submit">Logout</button>
-        </div>
-    </form>
-    @endauth
-</div>
-
-
-
+                <form action="{{ route('logout') }}" method="POST" class="mb-0">
+                    @csrf
+                    <div class="user-logout-container">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <button type="submit">Logout</button>
+                    </div>
+                </form>
+                @endauth
+            </div>
         </div>
 
         <!-- Content -->

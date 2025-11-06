@@ -8,6 +8,7 @@ use App\Http\Controllers\KonsultasiController;
 use App\Http\Controllers\StatistikPelayananController;
 use App\Http\Controllers\StatistikKonsultasiController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\SurveyController; // ✅ Tambahkan ini
 
 // ===========================
 // AUTH ROUTES
@@ -63,7 +64,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         ->name('antrian.delete');
 
     // -----------------------
-    // Monitor Antrian (Accessible by Superadmin, Admin, and Operator)
+    // Monitor Antrian
     // -----------------------
     Route::middleware('role:superadmin,admin,operator')->group(function () {
         Route::get('/monitor', [AntrianController::class, 'monitor'])->name('monitor');
@@ -80,16 +81,28 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::delete('/konsultasi/{id}', [KonsultasiController::class, 'destroy'])->name('konsultasi.destroy');
 
     // -----------------------
+    // Survey (Baru Ditambahkan)
+    // -----------------------
+Route::prefix('survey')->name('survey.')->group(function () {
+    Route::get('/', [SurveyController::class, 'index'])->name('index');
+    Route::get('/create', [SurveyController::class, 'create'])->name('create');
+    Route::post('/store', [SurveyController::class, 'store'])->name('store');
+    Route::get('/download', [SurveyController::class, 'downloadPdf'])->name('download');
+    Route::get('/{id}', [SurveyController::class, 'show'])->name('show');
+    Route::delete('/{id}', [SurveyController::class, 'destroy'])->name('destroy');
+});
+
+
+    // -----------------------
     // Multi Delete
     // -----------------------
     Route::delete('/multi-delete', [AdminController::class, 'multiDelete'])
         ->name('multi_delete');
 
     // -----------------------
-    // Superadmin Only Routes
+    // Superadmin Only
     // -----------------------
     Route::middleware('superadmin')->group(function () {
         Route::resource('users', UserController::class);
     });
-
 });
