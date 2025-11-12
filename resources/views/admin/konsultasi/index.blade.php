@@ -32,32 +32,34 @@
 <div class="card shadow-sm">
     <div class="card-body">
         <div class="table-responsive" id="konsultasi-table-container">
-            <table class="table table-bordered table-striped table-hover" id="konsultasi-table">
-                <thead class="table-light">
+            <table class="table table-bordered table-striped table-hover align-middle" id="konsultasi-table">
+                <thead class="table-light text-center">
                     <tr>
-                        <th>No</th>
+                        <th>No.</th>
                         <th>Nomor Antrian</th>
-                        <th>Nama Pemohon</th>
-                        <th>No HP/WA</th>
+                        <th>Nama Lengkap</th>
                         <th>Email</th>
+                        <th>No. HP / WA</th>
+                        <th>Alamat</th>
                         <th>Perihal</th>
                         <th>Isi Konsultasi</th>
                         <th>Dok Upload</th>
+                        <th>Tanggal Layanan</th>
                         <th>Status</th>
-                        <th>Tanggal Konsultasi</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($konsultasis as $index => $item)
                     <tr id="konsultasi-row-{{ $item->id }}">
-                        <td>{{ $konsultasis->firstItem() + $index }}</td>
-                        <td>{{ $item->antrian ? $item->antrian->nomor_antrian : '-' }}</td>
+                        <td class="text-center">{{ $konsultasis->firstItem() + $index }}</td>
+                        <td class="fw-bold text-center">{{ $item->nomor_antrian ?? ($item->antrian->nomor_antrian ?? '-') }}</td>
                         <td>{{ $item->nama_lengkap }}</td>
-                        <td>{{ $item->no_hp }}</td>
                         <td>{{ $item->email ?? '-' }}</td>
+                        <td>{{ $item->no_hp_wa }}</td>
+                        <td>{{ $item->alamat ?? '-' }}</td>
                         <td>{{ $item->perihal }}</td>
-                        <td style="max-width: 300px; white-space: pre-wrap;">
+                        <td style="max-width: 280px; white-space: pre-wrap;">
                             {{ Str::limit($item->isi_konsultasi, 100) }}
                         </td>
                         <td class="text-center">
@@ -70,6 +72,9 @@
                             @endif
                         </td>
                         <td>
+                            {{ \Carbon\Carbon::parse($item->tanggal_layanan)->translatedFormat('l, d/m/Y') }}
+                        </td>
+                        <td>
                             <select class="form-select form-select-sm status-dropdown" data-id="{{ $item->id }}">
                                 <option value="baru" {{ $item->status === 'baru' ? 'selected' : '' }}>Baru</option>
                                 <option value="proses" {{ $item->status === 'proses' ? 'selected' : '' }}>Proses</option>
@@ -77,8 +82,7 @@
                                 <option value="batal" {{ $item->status === 'batal' ? 'selected' : '' }}>Batal</option>
                             </select>
                         </td>
-                        <td>{{ \Carbon\Carbon::parse($item->tanggal_konsultasi)->translatedFormat('d/m/Y H:i') }}</td>
-                        <td>
+                        <td class="text-center">
                             <button class="btn btn-sm btn-danger delete-btn" data-id="{{ $item->id }}">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -86,7 +90,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="11" class="text-center text-muted py-4">Belum ada data konsultasi.</td>
+                        <td colspan="12" class="text-center text-muted py-4">Belum ada data konsultasi.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -95,7 +99,7 @@
 
         {{-- Pagination --}}
         <div class="d-flex justify-content-between align-items-center mt-3">
-            <div class="text-muted">
+            <div class="text-muted small">
                 Menampilkan {{ $konsultasis->firstItem() ?? 0 }} sampai {{ $konsultasis->lastItem() ?? 0 }} dari {{ $konsultasis->total() }} data
             </div>
             <div>
@@ -112,7 +116,6 @@ document.addEventListener("DOMContentLoaded", function(){
     const downloadBtn = document.getElementById('download-pdf-btn');
     const downloadText = document.getElementById('download-pdf-text');
 
-    // Update tombol download
     function updateDownloadTitle() {
         const selected = statusSelect.options[statusSelect.selectedIndex].text;
         downloadText.textContent = `Download daftar konsultasi - ${selected.toLowerCase()}`;
@@ -132,7 +135,6 @@ document.addEventListener("DOMContentLoaded", function(){
             .catch(() => alert('Terjadi error saat generate PDF'));
     };
 
-    // Status dropdown warna
     function applyStatusColor(selectEl){
         selectEl.classList.remove('bg-info','bg-warning','bg-success','bg-danger','text-white','text-dark');
         switch(selectEl.value){
@@ -143,7 +145,6 @@ document.addEventListener("DOMContentLoaded", function(){
         }
     }
 
-    // Attach status change event
     function attachStatusEvents() {
         document.querySelectorAll('.status-dropdown').forEach(dropdown => {
             applyStatusColor(dropdown);
@@ -168,7 +169,6 @@ document.addEventListener("DOMContentLoaded", function(){
         });
     }
 
-    // Attach delete button event
     function attachDeleteEvents() {
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.onclick = function(){
@@ -186,7 +186,6 @@ document.addEventListener("DOMContentLoaded", function(){
                     if(data.success){
                         const row = document.getElementById(`konsultasi-row-${id}`);
                         if(row) row.remove();
-                        if(typeof refreshAntrianTable === 'function') refreshAntrianTable(false);
                     } else alert('Gagal menghapus data');
                 })
                 .catch(() => alert('Terjadi error saat menghapus data'));
@@ -201,7 +200,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
 <style>
 .table th { background-color: #f8f9fa; font-weight: 600; white-space: nowrap; }
-.status-dropdown { min-width: 100px; }
+.status-dropdown { min-width: 110px; }
 .card { border: none; border-radius: 10px; }
 #download-pdf-btn { margin-bottom: 0; }
 </style>

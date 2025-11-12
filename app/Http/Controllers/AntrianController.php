@@ -8,8 +8,7 @@ use App\Models\Konsultasi;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use PDF;
 use Carbon\Carbon;
-use App\Services\TiketService; // ⬅️ Tambahkan ini
-
+use App\Services\TiketService;
 
 class AntrianController extends Controller
 {
@@ -21,17 +20,18 @@ class AntrianController extends Controller
         try {
             // 1️⃣ Validasi input
             $validated = $request->validate([
-                'nama'            => 'required|string|max:255',
-                'no_hp'           => 'required|string|max:20',
+                'nama_lengkap'    => 'required|string|max:255',
+                'no_hp_wa'        => 'required|string|max:20',
+                'email'           => 'nullable|email|max:255',
                 'alamat'          => 'required|string',
                 'bidang_layanan'  => 'required|string',
                 'layanan'         => 'required|string',
-                'tanggal_daftar'  => 'required|date',
+                'tanggal_layanan' => 'required|date',
                 'keterangan'      => 'nullable|string',
             ]);
 
             // 2️⃣ Generate nomor antrian (GLOBAL per tanggal)
-            $count = Antrian::whereDate('tanggal_daftar', $validated['tanggal_daftar'])->count();
+            $count = Antrian::whereDate('tanggal_layanan', $validated['tanggal_layanan'])->count();
             $nomor_antrian = $count + 1;
             $validated['nomor_antrian'] = sprintf('%03d', $nomor_antrian);
 
@@ -39,7 +39,7 @@ class AntrianController extends Controller
             $qrContent = json_encode([
                 'nomor_antrian'  => $validated['nomor_antrian'],
                 'bidang_layanan' => $validated['bidang_layanan'],
-                'tanggal_daftar' => $validated['tanggal_daftar'],
+                'tanggal_layanan'=> $validated['tanggal_layanan'],
             ]);
 
             $validated['qr_code_data'] = base64_encode(
@@ -54,7 +54,6 @@ class AntrianController extends Controller
 
             // 6️⃣ Generate tiket PDF lewat TiketService
             $tiket = TiketService::generateTiket($antrian, false);
-
 
             // 🔟 Kirim respons JSON ke Flutter
             return response()->json([
@@ -90,10 +89,9 @@ class AntrianController extends Controller
     // ===========================
     public function index()
     {
-        $antrians = Antrian::orderBy('tanggal_daftar', 'desc')->get();
+        $antrians = Antrian::orderBy('tanggal_layanan', 'desc')->get();
         return view('admin.antrian.antrian', compact('antrians'));
     }
-
 
     // ===========================
     // UPDATE STATUS (sinkron ke konsultasi)
@@ -132,7 +130,6 @@ class AntrianController extends Controller
         return response()->json(['success' => true]);
     }
 
-
     // ===========================
     // PARTIAL TABEL (AJAX)
     // ===========================
@@ -145,54 +142,57 @@ class AntrianController extends Controller
 
         switch ($filter) {
             case 'today':
-                $query->whereDate('tanggal_daftar', now()->toDateString());
+                $query->whereDate('tanggal_layanan', now()->toDateString());
                 break;
             case 'tomorrow':
-                $query->whereDate('tanggal_daftar', now()->addDay()->toDateString());
+                $query->whereDate('tanggal_layanan', now()->addDay()->toDateString());
                 break;
             case 'custom':
-                if ($date) $query->whereDate('tanggal_daftar', $date);
+                if ($date) $query->whereDate('tanggal_layanan', $date);
                 break;
             case 'all':
             default:
                 break;
         }
 
-        $antrian = $query->orderBy('tanggal_daftar', 'asc')
+        $antrian = $query->orderBy('tanggal_layanan', 'asc')
                          ->orderBy('nomor_antrian', 'asc')
                          ->paginate(20);
 
         Carbon::setLocale('id');
 
-        return view('admin.partials.antrian_table', compact('antrian'));
+        return view('admin.antrian.antrian_table', compact('antrian'));
     }
 
-public function delete(Request $request)
-{
-    $request->validate([
-        'id' => 'required|exists:antrian,id'
-    ]);
+    // ===========================
+    // HAPUS DATA
+    // ===========================
+    public function delete(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|exists:antrian,id'
+        ]);
 
-    $antrian = Antrian::findOrFail($request->id);
+        $antrian = Antrian::findOrFail($request->id);
 
-    try {
-        // Hapus konsultasi terkait jika ada
-        if ($antrian->konsultasi_id) {
-            $konsultasi = Konsultasi::find($antrian->konsultasi_id);
-            if ($konsultasi) {
-                $konsultasi->delete();
+        try {
+            // Hapus konsultasi terkait jika ada
+            if ($antrian->konsultasi_id) {
+                $konsultasi = Konsultasi::find($antrian->konsultasi_id);
+                if ($konsultasi) {
+                    $konsultasi->delete();
+                }
             }
+
+            // Hapus antrian
+            $antrian->delete();
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            \Log::error('Gagal hapus antrian: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Gagal menghapus antrian']);
         }
-
-        // Hapus antrian
-        $antrian->delete();
-
-        return response()->json(['success' => true]);
-    } catch (\Exception $e) {
-        \Log::error('Gagal hapus antrian: ' . $e->getMessage());
-        return response()->json(['success' => false, 'message' => 'Gagal menghapus antrian']);
     }
-}
 
     // ===========================
     // DOWNLOAD PDF DAFTAR
@@ -209,20 +209,20 @@ public function delete(Request $request)
 
         switch ($filter) {
             case 'today':
-                $query->whereDate('tanggal_daftar', now()->toDateString());
+                $query->whereDate('tanggal_layanan', now()->toDateString());
                 break;
             case 'tomorrow':
-                $query->whereDate('tanggal_daftar', now()->addDay()->toDateString());
+                $query->whereDate('tanggal_layanan', now()->addDay()->toDateString());
                 break;
             case 'custom':
-                if ($date) $query->whereDate('tanggal_daftar', $date);
+                if ($date) $query->whereDate('tanggal_layanan', $date);
                 break;
             case 'all':
             default:
                 break;
         }
 
-        $antrian = $query->orderBy('tanggal_daftar', 'desc')
+        $antrian = $query->orderBy('tanggal_layanan', 'desc')
                          ->orderBy('nomor_antrian', 'desc')
                          ->get();
 
@@ -235,7 +235,6 @@ public function delete(Request $request)
         ->stream("Daftar_Antrian_{$filter}.pdf");
     }
 
-
     // ===========================
     // MONITOR ANTRIAN
     // ===========================
@@ -244,17 +243,16 @@ public function delete(Request $request)
         return view('admin.monitor');
     }
 
-
     public function monitorData()
     {
         $today = Carbon::today()->toDateString();
 
-        $dalamProses = Antrian::whereDate('tanggal_daftar', $today)
+        $dalamProses = Antrian::whereDate('tanggal_layanan', $today)
             ->where('status', 'Diproses')
             ->orderBy('nomor_antrian', 'asc')
             ->get();
 
-        $selesai = Antrian::whereDate('tanggal_daftar', $today)
+        $selesai = Antrian::whereDate('tanggal_layanan', $today)
             ->where('status', 'Selesai')
             ->orderBy('nomor_antrian', 'desc')
             ->get();
@@ -267,4 +265,36 @@ public function delete(Request $request)
             'selesai'      => $selesai,
         ]);
     }
+
+    // ===========================
+    // ANTRIAN SELESAI HARI INI
+    // ===========================
+public function selesaiHariIni()
+{
+    $antrian = \App\Models\Antrian::whereDate('tanggal_layanan', now('Asia/Makassar'))
+        ->where('status', 'selesai')
+        ->whereDoesntHave('survey') // ✅ hanya ambil antrian yang belum survei
+        ->get([
+            'id',
+            'nomor_antrian',
+            'nama_lengkap',
+            'no_hp_wa',
+            'bidang_layanan',
+            'tanggal_layanan'
+        ])
+        ->map(function ($item) {
+            // ✅ ubah tanggal_layanan ke zona waktu lokal (WITA)
+            $item->tanggal_layanan = \Carbon\Carbon::parse($item->tanggal_layanan)
+                ->timezone('Asia/Makassar')
+                ->toDateString(); // hasil contoh: "2025-11-12"
+            return $item;
+        });
+
+    return response()->json([
+        'success' => true,
+        'data' => $antrian
+    ]);
+    \Log::info('Jumlah antrian:', ['count' => $antrian->count()]);
+
+}
 }

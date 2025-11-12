@@ -37,7 +37,7 @@
 {{-- Container Tabel Antrian --}}
 {{-- ============================= --}}
 <div id="antrian-table-container">
-    @include('admin.partials.antrian_table', ['antrian' => $antrian])
+    @include('admin.antrian.antrian_table', ['antrian' => $antrian])
 </div>
 
 <script>

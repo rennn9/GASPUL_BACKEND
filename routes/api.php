@@ -36,3 +36,9 @@ Route::get('/server-time', function () {
         'server_time' => $time->toIso8601String(),
     ]);
 });
+
+// ===============================
+// ✅ ANTRIAN SELESAI HARI INI
+// ===============================
+Route::get('/antrian/selesai-hari-ini', [AntrianController::class, 'selesaiHariIni']);
+

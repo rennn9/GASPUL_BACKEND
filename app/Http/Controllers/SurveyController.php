@@ -39,40 +39,45 @@ class SurveyController extends Controller
     /**
      * 🧾 Menyimpan data survey dari API (Flutter)
      */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'nama_responden'   => 'required|string|max:255',
-            'nomor_whatsapp'   => 'nullable|string|max:20',
-            'usia'             => 'nullable|integer',
-            'jenis_kelamin'    => 'nullable|string|max:20',
-            'pendidikan'       => 'nullable|string|max:100',
-            'pekerjaan'        => 'nullable|string|max:100',
-            'bidang'           => 'nullable|string|max:150',
-            'tanggal'          => 'nullable|date',
-            'jawaban'          => 'nullable|array',
-            'saran'            => 'nullable|string',
-        ]);
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'antrian_id'       => 'nullable|integer|exists:antrian,id', // ✅ baru
+        'nomor_antrian'    => 'nullable|string|max:10',
+        'nama_responden'   => 'required|string|max:255',
+        'no_hp_wa'         => 'nullable|string|max:20', // ✅ ubah dari nomor_whatsapp
+        'usia'             => 'nullable|integer',
+        'jenis_kelamin'    => 'nullable|string|max:20',
+        'pendidikan'       => 'nullable|string|max:100',
+        'pekerjaan'        => 'nullable|string|max:100',
+        'bidang'           => 'nullable|string|max:150',
+        'tanggal'          => 'nullable|date',
+        'jawaban'          => 'nullable|array',
+        'saran'            => 'nullable|string',
+    ]);
 
-        $survey = Survey::create([
-            'nama_responden'   => $validated['nama_responden'],
-            'nomor_whatsapp'   => $validated['nomor_whatsapp'] ?? null,
-            'usia'             => $validated['usia'] ?? null,
-            'jenis_kelamin'    => $validated['jenis_kelamin'] ?? null,
-            'pendidikan'       => $validated['pendidikan'] ?? null,
-            'pekerjaan'        => $validated['pekerjaan'] ?? null,
-            'bidang'           => $validated['bidang'] ?? null,
-            'tanggal'          => $validated['tanggal'] ?? now(),
-            'jawaban'          => isset($validated['jawaban']) ? json_encode($validated['jawaban']) : null,
-            'saran'            => $validated['saran'] ?? null,
-        ]);
+    $survey = Survey::create([
+        'antrian_id'       => $validated['antrian_id'] ?? null, // ✅ simpan relasi
+        'nomor_antrian'    => $validated['nomor_antrian'] ?? null,
+        'nama_responden'   => $validated['nama_responden'],
+        'no_hp_wa'         => $validated['no_hp_wa'] ?? null, // ✅ ubah dari nomor_whatsapp
+        'usia'             => $validated['usia'] ?? null,
+        'jenis_kelamin'    => $validated['jenis_kelamin'] ?? null,
+        'pendidikan'       => $validated['pendidikan'] ?? null,
+        'pekerjaan'        => $validated['pekerjaan'] ?? null,
+        'bidang'           => $validated['bidang'] ?? null,
+        'tanggal'          => $validated['tanggal'] ?? now(),
+        'jawaban'          => isset($validated['jawaban']) ? json_encode($validated['jawaban']) : null,
+        'saran'            => $validated['saran'] ?? null,
+    ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Survey berhasil disimpan.',
-            'data'    => $survey,
-        ], 201);
-    }
+    return response()->json([
+        'success' => true,
+        'message' => 'Survey berhasil disimpan.',
+        'data'    => $survey,
+    ], 201);
+}
+
 
     /**
      * 🔍 Menampilkan detail survey tertentu (untuk admin)

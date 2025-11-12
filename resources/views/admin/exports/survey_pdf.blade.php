@@ -2,49 +2,90 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Daftar Survey</title>
+    <title>
+        Daftar Survei {{ $dateText }}
+    </title>
     <style>
-        body { font-family: sans-serif; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #333; padding: 8px; text-align: left; }
-        th { background: #eee; }
-        .empty { text-align: center; font-style: italic; padding: 20px; }
+        @page {
+            size: A4 landscape; /* 🔄 Orientasi lanskap */
+            margin: 15px;
+        }
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 11px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 3px 5px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        h3 {
+            margin: 0;
+            text-align: center;
+        }
+        .header-info {
+            text-align: center;
+            font-size: 10px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
-    <h2>Daftar Survey - {{ $dateText }}</h2>
+    <h3>
+        Daftar Survei - {{ $dateText }}
+    </h3>
+    <div class="header-info">
+        Dicetak pada: {{ now()->locale('id')->translatedFormat('l, d/m/Y H:i') }}
+    </div>
 
-    @if($surveys->isEmpty())
-        <div class="empty">Tidak ada daftar survey</div>
-    @else
-        <table>
-            <thead>
+    <table>
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Nama Responden</th>
+                <th>Bidang</th>
+                <th>Pekerjaan</th>
+                <th>Tanggal</th>
+                <th>Usia</th>
+                <th>Jenis Kelamin</th>
+                <th>Saran / Masukan</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($surveys as $index => $item)
                 <tr>
-                    <th>#</th>
-                    <th>Nama</th>
-                    <th>Bidang</th>
-                    <th>Pekerjaan</th>
-                    <th>Tanggal & Jam</th>
-                    <th>Usia</th>
-                    <th>Jenis Kelamin</th>
-                    <th>Saran</th>
+                    <td>{{ $index + 1 }}</td>
+                    <td>{{ $item->nama_responden ?? '-' }}</td>
+                    <td>{{ $item->bidang ?? '-' }}</td>
+                    <td>{{ $item->pekerjaan ?? '-' }}</td>
+                    <td>
+                        {{ optional($item->tanggal)
+                            ? \Carbon\Carbon::parse($item->tanggal)
+                                ->locale('id')
+                                ->translatedFormat('l, d/m/Y')
+                            : '-' }}
+                    </td>
+                    <td>{{ $item->usia ?? '-' }}</td>
+                    <td>{{ $item->jenis_kelamin ?? '-' }}</td>
+                    <td style="max-width: 200px; word-wrap: break-word;">
+                        {{ $item->saran ?? '-' }}
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach($surveys as $index => $item)
-                    <tr>
-                        <td>{{ $index + 1 }}</td>
-                        <td>{{ $item->nama_responden }}</td>
-                        <td>{{ $item->bidang }}</td>
-                        <td>{{ $item->pekerjaan }}</td>
-                        <td>{{ $item->tanggal?->format('d/m/Y H:i') }}</td>
-                        <td>{{ $item->usia ?? '-' }}</td>
-                        <td>{{ $item->jenis_kelamin ?? '-' }}</td>
-                        <td>{{ $item->saran ?? '-' }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
+            @empty
+                <tr>
+                    <td colspan="8" style="text-align:center;">Tidak ada data survei</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
 </body>
 </html>

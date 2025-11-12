@@ -10,8 +10,9 @@ class Survey extends Model
     use HasFactory;
 
     protected $fillable = [
+        'nomor_antrian',
         'nama_responden',
-        'nomor_whatsapp',
+        'no_hp_wa',
         'usia',
         'jenis_kelamin',
         'pendidikan',
@@ -26,4 +27,10 @@ class Survey extends Model
         'jawaban' => 'array',
         'tanggal' => 'date',
     ];
+
+    public function antrian()
+    {
+        return $this->belongsTo(Antrian::class, 'antrian_id');
+    }
+
 }
