@@ -92,88 +92,144 @@
 </div>
 
 
-            <!-- ================== CARD UTAMA ================== -->
-            <div class="card shadow mb-4">
-                <div class="card-header bg-dark text-white fw-bold">
-                    Ringkasan Survey
+<!-- ================== CARD UTAMA ================== -->
+<div class="card shadow mb-4">
+    <div class="card-header bg-dark text-white fw-bold">
+        Ringkasan Survey
+    </div>
+
+    <div class="card-body">
+
+        <!-- ================== ROW 1: IKM ================== -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h5 class="fw-bold mb-3">Nilai IKM</h5>
+                <div class="p-3 border rounded bg-light text-center">
+                    <h2 class="fw-bold {{ $ikmColor }} display-4">
+                        {{ number_format($ikmTotal ?? 0, 2) }}
+                    </h2>
+                    <p class="text-muted mb-0">Indeks Kepuasan Masyarakat</p>
                 </div>
+            </div>
+        </div>
 
-                <div class="card-body">
-                    <div class="row">
+        <!-- ================== ROW 2: Responden + Bar Chart ================== -->
+        <div class="row">
 
-                        <!-- KOLOM KIRI -->
-                        <div class="col-md-6">
-                            <h5 class="fw-bold mb-3">Nilai IKM</h5>
+            <!-- KOLOM KIRI: INFO RESPONDEN -->
+            <div class="col-md-6">
+                <h5 class="fw-bold mb-3">Responden</h5>
+                <div class="p-3 border rounded bg-light">
+                    <p class="mb-2">
+                        <strong>Total Responden:</strong> {{ $total }}
+                    </p>
 
-                            <div class="p-3 border rounded bg-light">
-                                <h2 class="text-center fw-bold {{ $ikmColor }} display-4">
-                                    {{ number_format($ikmTotal ?? 0, 2) }}
-                                </h2>
-                                <p class="text-center text-muted mb-0">Indeks Kepuasan Masyarakat</p>
-                            </div>
-                        </div>
+                    <p class="mb-2">
+                        <strong>Jenis Kelamin:</strong><br>
+                        - Laki-Laki: {{ $laki }} <br>
+                        - Perempuan: {{ $perempuan }}
+                    </p>
 
-                        <!-- KOLOM KANAN -->
-                        <div class="col-md-6">
-                            <h5 class="fw-bold mb-3">Responden</h5>
+                    <p class="mb-2">
+                        <strong>Pendidikan:</strong><br>
+                        @foreach($pendidikanCounts as $pend => $count)
+                            - {{ strtoupper($pend) }}: {{ $count }} <br>
+                        @endforeach
+                    </p>
 
-                            <div class="p-3 border rounded bg-light">
+                    <p class="mb-2">
+                        <strong>Usia (Interval):</strong><br>
+                        @foreach($usiaGroups as $g)
+                            - {{ $g['range'] }} tahun : {{ $g['count'] }} <br>
+                        @endforeach
+                    </p>
 
-                                <p class="mb-2">
-                                    <strong>Total Responden:</strong> {{ $total }}
-                                </p>
+                    <p class="mb-0">
+                        <strong>Periode Survey:</strong><br>
+                        <button class="btn btn-link p-0 m-0 text-decoration-none"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalFilterPeriode">
+                            {{ $periodeAwal?->translatedFormat('d F Y') }} –
+                            {{ $periodeAkhir?->translatedFormat('d F Y') }}
+                            <i class="bi bi-calendar-range ms-1"></i>
+                        </button>
 
-                                <p class="mb-2">
-                                    <strong>Jenis Kelamin:</strong><br>
-                                    - Laki-Laki: {{ $laki }} <br>
-                                    - Perempuan: {{ $perempuan }}
-                                </p>
+                        @if($periodeAwal || $periodeAkhir)
+                        <form action="{{ route('admin.statistik.survey.resetPeriode') }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-secondary">
+                                Reset Periode
+                            </button>
+                        </form>
+                        @endif
+                    </p>
+                </div>
+            </div>
 
-                                <p class="mb-2">
-                                    <strong>Pendidikan:</strong><br>
-                                    @foreach($pendidikanCounts as $pend => $count)
-                                        - {{ strtoupper($pend) }}: {{ $count }} <br>
-                                    @endforeach
-                                </p>
+            <!-- KOLOM KANAN: BAR CHART RESPONDEN -->
+            <div class="col-md-6">
+                <h5 class="fw-bold mb-3">Visualisasi Responden</h5>
 
-                                <p class="mb-2">
-                                    <strong>Usia (Interval):</strong><br>
-                                    @foreach($usiaGroups as $g)
-                                        - {{ $g['range'] }} tahun : {{ $g['count'] }} <br>
-                                    @endforeach
-                                </p>
+                <ul class="nav nav-tabs" id="respondenChartTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="gender-tab" data-bs-toggle="tab" data-bs-target="#chartGender" type="button" role="tab">Jenis Kelamin</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="education-tab" data-bs-toggle="tab" data-bs-target="#chartEducation" type="button" role="tab">Pendidikan</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="age-tab" data-bs-toggle="tab" data-bs-target="#chartAge" type="button" role="tab">Usia</button>
+                    </li>
+                </ul>
 
-                            <p class="mb-0">
-                                <strong>Periode Survey:</strong><br>
-
-                                <!-- Tombol buka modal datepicker -->
-                                <button class="btn btn-link p-0 m-0 text-decoration-none"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#modalFilterPeriode">
-                                    {{ $periodeAwal?->translatedFormat('d F Y') }} –
-                                    {{ $periodeAkhir?->translatedFormat('d F Y') }}
-                                    <i class="bi bi-calendar-range ms-1"></i>
-                                </button>
-
-                                <!-- Tombol reset periode (muncul hanya jika filter aktif) -->
-                                @if($periodeAwal || $periodeAkhir)
-                            <form action="{{ route('admin.statistik.survey.resetPeriode') }}" method="POST" class="d-inline">
-                                @csrf
-                                <button type="submit" class="btn btn-sm btn-secondary">
-                                    Reset Periode
-                                </button>
-                            </form>
-
-
-                                @endif
-                            </p>
-                            </div>
-                        </div>
-
+                <div class="tab-content mt-3" id="respondenChartTabsContent">
+                    <div class="tab-pane fade show active" id="chartGender" role="tabpanel">
+                        <canvas id="barChartGender" height="250"></canvas>
+                    </div>
+                    <div class="tab-pane fade" id="chartEducation" role="tabpanel">
+                        <canvas id="barChartEducation" height="250"></canvas>
+                    </div>
+                    <div class="tab-pane fade" id="chartAge" role="tabpanel">
+                        <canvas id="barChartAge" height="250"></canvas>
                     </div>
                 </div>
             </div>
-            <!-- ================== END CARD UTAMA ================== -->
+
+        </div>
+
+    </div>
+</div>
+<!-- ================== END CARD UTAMA ================== -->
+
+<!-- ================== CHART.JS ================== -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // ===== Data dari PHP/Blade =====
+    const dataGender = {
+        labels: ['Laki-Laki', 'Perempuan'],
+        datasets: [{ label: 'Jumlah Responden', data: [{{ $laki }}, {{ $perempuan }}], backgroundColor: ['#4e73df', '#1cc88a'] }]
+    };
+    const dataEducation = {
+        labels: [@foreach($pendidikanCounts as $pend => $count) '{{ strtoupper($pend) }}', @endforeach],
+        datasets: [{ label: 'Jumlah Responden', data: [@foreach($pendidikanCounts as $pend => $count) {{ $count }}, @endforeach], backgroundColor: '#36b9cc' }]
+    };
+    const dataAge = {
+        labels: [@foreach($usiaGroups as $g) '{{ $g['range'] }}', @endforeach],
+        datasets: [{ label: 'Jumlah Responden', data: [@foreach($usiaGroups as $g) {{ $g['count'] }}, @endforeach], backgroundColor: '#f6c23e' }]
+    };
+
+    // ===== Chart config =====
+    const configGender = { type: 'bar', data: dataGender, options: { responsive:true, plugins: { legend: { display: false } } } };
+    const configEducation = { type: 'bar', data: dataEducation, options: { responsive:true, plugins: { legend: { display: false } } } };
+    const configAge = { type: 'bar', data: dataAge, options: { responsive:true, plugins: { legend: { display: false } } } };
+
+    // ===== Inisialisasi Chart =====
+    new Chart(document.getElementById('barChartGender'), configGender);
+    new Chart(document.getElementById('barChartEducation'), configEducation);
+    new Chart(document.getElementById('barChartAge'), configAge);
+});
+</script>
 
 
 
