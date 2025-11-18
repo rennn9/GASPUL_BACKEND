@@ -4,19 +4,7 @@
 <h2 class="fw-bold mb-4">Statistik Pelayanan</h2>
 
 {{-- Navigasi Tab --}}
-<ul class="nav nav-tabs mb-4">
-    <li class="nav-item">
-        <a class="nav-link {{ request()->is('admin/statistik/pelayanan') ? 'active' : '' }}" href="{{ route('admin.statistik.pelayanan') }}">
-            Statistik Pelayanan
-        </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link {{ request()->is('admin/statistik/konsultasi') ? 'active' : '' }}" href="{{ route('admin.statistik.konsultasi') }}">
-            Statistik Konsultasi
-        </a>
-    </li>
-</ul>
-
+@include('admin.statistik._tabs')
 
 <div class="card shadow-sm">
     <div class="card-body">
@@ -40,16 +28,18 @@
                 </thead>
                 <tbody>
                     @forelse($statistik as $item)
-                    <tr>
-                        <td>{{ $item->bidang_layanan }}</td>
-                        <td class="text-center">{{ $item->total }}</td>
-                        <td class="text-center">{{ $item->selesai }}</td>
-                        <td class="text-center">{{ $item->batal }}</td>
-                    </tr>
+                        <tr>
+                            <td>{{ $item->bidang_layanan }}</td>
+                            <td class="text-center">{{ $item->total }}</td>
+                            <td class="text-center">{{ $item->selesai }}</td>
+                            <td class="text-center">{{ $item->batal }}</td>
+                        </tr>
                     @empty
-                    <tr>
-                        <td colspan="4" class="text-center text-muted py-4">Belum ada data statistik.</td>
-                    </tr>
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                Belum ada data statistik.
+                            </td>
+                        </tr>
                     @endforelse
                 </tbody>
             </table>
@@ -62,79 +52,44 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Data dari Laravel
     const statistik = @json($statistik);
 
-    // Prepare data untuk chart
     const labels = statistik.map(item => item.bidang_layanan);
     const totalData = statistik.map(item => item.total);
     const selesaiData = statistik.map(item => item.selesai);
     const batalData = statistik.map(item => item.batal);
 
-    // Warna untuk chart (sesuai dengan tampilan mobile)
     const colors = {
         total: 'rgba(33, 150, 243, 0.8)',      // Biru
         selesai: 'rgba(76, 175, 80, 0.8)',     // Hijau
         batal: 'rgba(244, 67, 54, 0.8)'        // Merah
     };
 
-    // Create chart
     const ctx = document.getElementById('layananChart').getContext('2d');
-    const chart = new Chart(ctx, {
+    new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [
-                {
-                    label: 'Total',
-                    data: totalData,
-                    backgroundColor: colors.total,
-                    borderColor: 'rgba(33, 150, 243, 1)',
-                    borderWidth: 1
-                },
-                {
-                    label: 'Selesai',
-                    data: selesaiData,
-                    backgroundColor: colors.selesai,
-                    borderColor: 'rgba(76, 175, 80, 1)',
-                    borderWidth: 1
-                }
+                { label: 'Total', data: totalData, backgroundColor: colors.total, borderColor: 'rgba(33,150,243,1)', borderWidth: 1 },
+                { label: 'Selesai', data: selesaiData, backgroundColor: colors.selesai, borderColor: 'rgba(76,175,80,1)', borderWidth: 1 },
+                { label: 'Batal', data: batalData, backgroundColor: colors.batal, borderColor: 'rgba(244,67,54,1)', borderWidth: 1 },
             ]
         },
         options: {
-            indexAxis: 'y', // Horizontal bar chart seperti di mobile
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 5
-                    },
-                    grid: {
-                        display: true,
-                        drawBorder: true
-                    }
-                },
-                y: {
-                    grid: {
-                        display: false
-                    }
-                }
+                x: { beginAtZero: true, ticks: { stepSize: 5 }, grid: { display: true, drawBorder: true } },
+                y: { grid: { display: false } }
             },
             plugins: {
-                legend: {
-                    display: true,
-                    position: 'bottom',
-                    labels: {
-                        boxWidth: 20,
-                        padding: 15
-                    }
-                },
+                legend: { display: true, position: 'bottom', labels: { boxWidth: 20, padding: 15 } },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return context.dataset.label + ': ' + context.parsed.x;
+                            return `${context.dataset.label}: ${context.parsed.x}`;
                         }
                     }
                 }
@@ -150,17 +105,14 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 20px;
     border-radius: 8px;
 }
-
 .card {
     border: none;
     border-radius: 10px;
 }
-
 .table th {
     background-color: #f8f9fa;
     font-weight: 600;
 }
-
 .table-bordered {
     border: 1px solid #dee2e6;
 }

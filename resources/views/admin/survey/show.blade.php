@@ -28,6 +28,10 @@
                     <td>{{ $survey->pekerjaan }}</td>
                 </tr>
                 <tr>
+                    <th>Pendidikan</th>
+                    <td>{{ $survey->pendidikan ?? '-' }}</td>
+                </tr>
+                <tr>
                     <th>Tanggal</th>
                     <td>
                         {{ optional($survey->tanggal)
@@ -65,7 +69,7 @@
                             @foreach($jawaban as $pertanyaan => $jawab)
                                 <tr>
                                     <td>{{ $pertanyaan }}</td>
-                                    <td>{{ $jawab }}</td>
+                                    <td>{{ $jawab['jawaban'] ?? '-' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

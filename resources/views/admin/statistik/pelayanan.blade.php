@@ -3,19 +3,8 @@
 @section('content')
 <h2 class="fw-bold mb-4">Statistik Pelayanan</h2>
 
-{{-- Navigasi Tab --}}
-<ul class="nav nav-tabs mb-4">
-    <li class="nav-item">
-        <a class="nav-link {{ request()->is('admin/statistik/pelayanan') ? 'active' : '' }}" href="{{ route('admin.statistik.pelayanan') }}">
-            Statistik Pelayanan
-        </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link {{ request()->is('admin/statistik/konsultasi') ? 'active' : '' }}" href="{{ route('admin.statistik.konsultasi') }}">
-            Statistik Konsultasi
-        </a>
-    </li>
-</ul>
+{{-- Navigasi Tab (dipanggil dari partial) --}}
+@include('admin.statistik._tabs')
 
 <div class="card shadow-sm">
     <div class="card-body">
@@ -67,9 +56,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const batalData = statistik.map(item => item.batal);
 
     const colors = {
-        total: 'rgba(33, 150, 243, 0.8)',
-        selesai: 'rgba(76, 175, 80, 0.8)',
-        batal: 'rgba(244, 67, 54, 0.8)'
+        total: 'rgba(33, 150, 243, 0.8)',   // Biru
+        selesai: 'rgba(76, 175, 80, 0.8)', // Hijau
+        batal: 'rgba(244, 67, 54, 0.8)'    // Merah
     };
 
     const ctx = document.getElementById('layananChart').getContext('2d');
@@ -98,9 +87,21 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-.chart-container { background: #fff; padding: 20px; border-radius: 8px; }
-.card { border: none; border-radius: 10px; }
-.table th { background-color: #f8f9fa; font-weight: 600; }
-.table-bordered { border: 1px solid #dee2e6; }
+.chart-container {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+}
+.card {
+    border: none;
+    border-radius: 10px;
+}
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+.table-bordered {
+    border: 1px solid #dee2e6;
+}
 </style>
 @endsection

@@ -7,8 +7,9 @@ use App\Http\Controllers\AntrianController;
 use App\Http\Controllers\KonsultasiController;
 use App\Http\Controllers\StatistikPelayananController;
 use App\Http\Controllers\StatistikKonsultasiController;
+use App\Http\Controllers\StatistikSurveyController; // Statistik Survey (IKM)
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\SurveyController; // ✅ Tambahkan ini
+use App\Http\Controllers\SurveyController;
 
 // ===========================
 // AUTH ROUTES
@@ -38,11 +39,28 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/statistik', fn() => redirect()->route('admin.statistik.pelayanan'))
         ->name('statistik');
 
-    Route::prefix('statistik')->group(function () {
+    Route::prefix('statistik')->name('statistik.')->group(function () {
+
+        // Pelayanan
         Route::get('/pelayanan', [StatistikPelayananController::class, 'index'])
-            ->name('statistik.pelayanan');
+            ->name('pelayanan');
+
+        // Konsultasi
         Route::get('/konsultasi', [StatistikKonsultasiController::class, 'index'])
-            ->name('statistik.konsultasi');
+            ->name('konsultasi');
+
+        // Survey (IKM)
+        Route::get('/survey', [StatistikSurveyController::class, 'index'])
+            ->name('survey');
+
+        // Reset Periode Survey
+        Route::post('/survey/reset-periode', [StatistikSurveyController::class, 'resetPeriode'])
+            ->name('survey.resetPeriode');
+
+        // Download Excel Survey
+        Route::get('/survey/download-excel', [StatistikSurveyController::class, 'downloadExcel'])
+            ->name('survey.downloadExcel');
+            
     });
 
     // -----------------------
@@ -81,17 +99,16 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::delete('/konsultasi/{id}', [KonsultasiController::class, 'destroy'])->name('konsultasi.destroy');
 
     // -----------------------
-    // Survey (Baru Ditambahkan)
+    // Survey CRUD
     // -----------------------
-Route::prefix('survey')->name('survey.')->group(function () {
-    Route::get('/', [SurveyController::class, 'index'])->name('index');
-    Route::get('/create', [SurveyController::class, 'create'])->name('create');
-    Route::post('/store', [SurveyController::class, 'store'])->name('store');
-    Route::get('/download', [SurveyController::class, 'downloadPdf'])->name('download');
-    Route::get('/{id}', [SurveyController::class, 'show'])->name('show');
-    Route::delete('/{id}', [SurveyController::class, 'destroy'])->name('destroy');
-});
-
+    Route::prefix('survey')->name('survey.')->group(function () {
+        Route::get('/', [SurveyController::class, 'index'])->name('index');
+        Route::get('/create', [SurveyController::class, 'create'])->name('create');
+        Route::post('/store', [SurveyController::class, 'store'])->name('store');
+        Route::get('/download', [SurveyController::class, 'downloadPdf'])->name('download');
+        Route::get('/{id}', [SurveyController::class, 'show'])->name('show');
+        Route::delete('/{id}', [SurveyController::class, 'destroy'])->name('destroy');
+    });
 
     // -----------------------
     // Multi Delete
