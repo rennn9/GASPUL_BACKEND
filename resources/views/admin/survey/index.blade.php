@@ -15,6 +15,7 @@
          ======================= --}}
     <div class="card shadow-sm mb-3">
         <div class="card-body d-flex flex-wrap align-items-start gap-2">
+
             {{-- Tabs filter --}}
             <ul class="nav nav-tabs" id="filterTab" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -53,56 +54,58 @@
         </div>
     </div>
 
-
     {{-- =======================
          Tabel Survey
          ======================= --}}
     <div class="card shadow-sm">
-        <div class="card-body">
-            <table class="table table-striped align-middle">
-                <thead class="table-primary">
-                    <tr>
-                        <th>#</th>
-                        <th>Nama</th>
-                        <th>Bidang</th>
-                        <th>Pekerjaan</th>
-                        <th>Tanggal</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($surveys as $index => $item)
+        <div class="card-body p-3">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead class="table-primary">
                         <tr>
-                            <td>{{ $index + 1 }}</td>
-                            <td>{{ $item->nama_responden }}</td>
-                            <td>{{ $item->bidang }}</td>
-                            <td>{{ $item->pekerjaan }}</td>
-                            <td>
-                                {{ optional($item->tanggal)
-                                    ? \Carbon\Carbon::parse($item->tanggal)
-                                        ->locale('id')
-                                        ->translatedFormat('l, d/m/Y')
-                                    : '-' }}
-                            </td>
-                            <td>
-                                <a href="{{ route('admin.survey.show', $item->id) }}" class="btn btn-sm btn-info">
-                                    <i class="bi bi-eye"></i> Detail
-                                </a>
-                                <button class="btn btn-sm btn-danger" onclick="deleteSurvey({{ $item->id }})">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
-                            </td>
+                            <th>#</th>
+                            <th>Nama</th>
+                            <th>Bidang</th>
+                            <th>Pekerjaan</th>
+                            <th>Tanggal</th>
+                            <th>Aksi</th>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center text-muted">Belum ada data survey</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @forelse($surveys as $index => $item)
+                            <tr>
+                                <td>{{ $index + 1 }}</td>
+                                <td>{{ $item->nama_responden }}</td>
+                                <td>{{ $item->bidang }}</td>
+                                <td>{{ $item->pekerjaan }}</td>
+                                <td>
+                                    {{ optional($item->tanggal)
+                                        ? \Carbon\Carbon::parse($item->tanggal)
+                                            ->locale('id')
+                                            ->translatedFormat('l, d/m/Y')
+                                        : '-' }}
+                                </td>
+                                <td>
+                                    <a href="{{ route('admin.survey.show', $item->id) }}" class="btn btn-sm btn-info">
+                                        <i class="bi bi-eye"></i> Detail
+                                    </a>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteSurvey({{ $item->id }})">
+                                        <i class="bi bi-trash"></i> Hapus
+                                    </button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">Belum ada data survey</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
 
+            {{-- Pagination Bootstrap 5 --}}
             <div class="mt-3">
-                {{ $surveys->appends(request()->query())->links() }}
+                {{ $surveys->appends(request()->query())->links('pagination::bootstrap-5') }}
             </div>
         </div>
     </div>
