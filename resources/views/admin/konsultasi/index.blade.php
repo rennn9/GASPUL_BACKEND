@@ -41,14 +41,15 @@
                         <th>Email</th>
                         <th>No. HP / WA</th>
                         <th>Alamat</th>
+                        <th>Asal Instansi</th>
                         <th>Perihal</th>
-                        <th>Isi Konsultasi</th>
                         <th>Dok Upload</th>
                         <th>Tanggal Layanan</th>
                         <th>Status</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     @forelse($konsultasis as $index => $item)
                     <tr id="konsultasi-row-{{ $item->id }}">
@@ -58,10 +59,9 @@
                         <td>{{ $item->email ?? '-' }}</td>
                         <td>{{ $item->no_hp_wa }}</td>
                         <td>{{ $item->alamat ?? '-' }}</td>
+                        <td>{{ $item->asal_instansi ?? '-' }}</td>
                         <td>{{ $item->perihal }}</td>
-                        <td style="max-width: 280px; white-space: pre-wrap;">
-                            {{ Str::limit($item->isi_konsultasi, 100) }}
-                        </td>
+
                         <td class="text-center">
                             @if($item->dokumen)
                                 <a href="{{ asset('storage/' . $item->dokumen) }}" target="_blank" class="btn btn-sm btn-info">
@@ -71,9 +71,11 @@
                                 <span class="text-muted">-</span>
                             @endif
                         </td>
+
                         <td>
                             {{ \Carbon\Carbon::parse($item->tanggal_layanan)->translatedFormat('l, d/m/Y') }}
                         </td>
+
                         <td>
                             <select class="form-select form-select-sm status-dropdown" data-id="{{ $item->id }}">
                                 <option value="baru" {{ $item->status === 'baru' ? 'selected' : '' }}>Baru</option>
@@ -82,6 +84,7 @@
                                 <option value="batal" {{ $item->status === 'batal' ? 'selected' : '' }}>Batal</option>
                             </select>
                         </td>
+
                         <td class="text-center">
                             <button class="btn btn-sm btn-danger delete-btn" data-id="{{ $item->id }}">
                                 <i class="bi bi-trash"></i>

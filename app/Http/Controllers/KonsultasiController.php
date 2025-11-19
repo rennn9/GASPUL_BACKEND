@@ -146,16 +146,16 @@ public function store(Request $request)
     try {
         $validated = $request->validate([
             'nama_lengkap'   => 'required|string|max:255',
-            'no_hp_wa'       => 'required|string|max:20', // 🟢 ubah dari no_hp ke no_hp_wa
+            'no_hp_wa'       => 'required|string|max:20',
             'email'          => 'nullable|email',
             'perihal'        => 'required|string|max:255',
-            'isi_konsultasi' => 'required|string',
+            'asal_instansi'  => 'nullable|string|max:255',
             'dokumen'        => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
         ]);
 
         DB::beginTransaction();
 
-        // 🧾 Upload dokumen (jika ada)
+        // Upload dokumen
         $filePath = null;
         if ($request->hasFile('dokumen')) {
             $file = $request->file('dokumen');
@@ -163,31 +163,31 @@ public function store(Request $request)
             $filePath = $file->storeAs('konsultasi', $filename, 'public');
         }
 
-        // 🟢 Simpan ke tabel konsultasi
+        // Simpan ke tabel konsultasi
         $konsultasi = Konsultasi::create([
             'nama_lengkap'     => $validated['nama_lengkap'],
             'no_hp_wa'         => $validated['no_hp_wa'],
-            'alamat'           => $request->alamat ?? null, // ✅ tambahkan ini
+            'alamat'           => $request->alamat ?? null,
+            'asal_instansi'    => $validated['asal_instansi'] ?? null,
             'email'            => $validated['email'] ?? null,
             'perihal'          => $validated['perihal'],
-            'isi_konsultasi'   => $validated['isi_konsultasi'],
             'dokumen'          => $filePath,
             'status'           => 'baru',
             'tanggal_layanan'  => now(),
         ]);
 
-        // 🔢 Buat nomor antrian otomatis
+        // Generate nomor antrian
         $today = Carbon::today()->toDateString();
         $lastQueue = Antrian::whereDate('tanggal_layanan', $today)->max('nomor_antrian');
         $nextQueue = $lastQueue ? $lastQueue + 1 : 1;
         $nomorAntrian = sprintf('%03d', $nextQueue);
 
-        // 🟢 Buat entri antrian baru
+        // Simpan ke tabel antrian
         $antrian = Antrian::create([
             'konsultasi_id'   => $konsultasi->id,
-            'nama_lengkap' => $konsultasi->nama_lengkap,
-            'no_hp_wa' => $konsultasi->no_hp_wa ?? $request->no_hp_wa,
-            'email'           => $konsultasi->email ?? null,
+            'nama_lengkap'    => $konsultasi->nama_lengkap,
+            'no_hp_wa'        => $konsultasi->no_hp_wa,
+            'email'           => $konsultasi->email,
             'alamat'          => $request->alamat ?? 'Tidak ada alamat (form konsultasi)',
             'bidang_layanan'  => 'Konsultasi',
             'layanan'         => $konsultasi->perihal,
@@ -198,12 +198,12 @@ public function store(Request $request)
             'status'          => 'Diproses',
         ]);
 
-        // Simpan nomor antrian ke tabel konsultasi juga
+        // Update tabel konsultasi
         $konsultasi->update([
-            'nomor_antrian' => $nomorAntrian, // ✅ pastikan kolom ini ada di tabel konsultasi
+            'nomor_antrian' => $nomorAntrian,
         ]);
 
-        // 🎫 Generate tiket PDF
+        // Generate tiket PDF
         $tiket = TiketService::generateTiket($antrian, true);
 
         DB::commit();

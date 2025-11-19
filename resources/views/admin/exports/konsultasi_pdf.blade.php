@@ -54,8 +54,9 @@
                 <th>Nama Pemohon</th>
                 <th>No. HP / WA</th>
                 <th>Email</th>
+                <th>Alamat</th>
+                <th>Asal Instansi</th>
                 <th>Perihal</th>
-                <th>Isi Konsultasi</th>
                 <th>Status</th>
                 <th>Tanggal Konsultasi</th>
             </tr>
@@ -67,11 +68,14 @@
                     <td>{{ $item->nama_lengkap ?? '-' }}</td>
                     <td>{{ $item->no_hp_wa ?? '-' }}</td>
                     <td>{{ $item->email ?? '-' }}</td>
-                    <td style="max-width: 100px; word-wrap: break-word;">
-                        {{ $item->perihal ?? '-' }}
+                    <td style="max-width: 120px; word-wrap: break-word;">
+                        {{ $item->alamat ?? '-' }}
                     </td>
-                    <td style="max-width: 150px; word-wrap: break-word;">
-                        {{ \Illuminate\Support\Str::limit($item->isi_konsultasi, 100) ?? '-' }}
+                    <td style="max-width: 120px; word-wrap: break-word;">
+                        {{ $item->asal_instansi ?? '-' }}
+                    </td>
+                    <td style="max-width: 120px; word-wrap: break-word;">
+                        {{ $item->perihal ?? '-' }}
                     </td>
                     <td>{{ ucfirst($item->status ?? '-') }}</td>
                     <td>
@@ -80,7 +84,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" style="text-align:center;">Tidak ada data konsultasi</td>
+                    <td colspan="9" style="text-align:center;">Tidak ada data konsultasi</td>
                 </tr>
             @endforelse
         </tbody>

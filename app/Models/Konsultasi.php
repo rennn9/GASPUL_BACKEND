@@ -17,7 +17,7 @@ class Konsultasi extends Model
         'email',
         'alamat',            // 🆕 tambahan baru
         'perihal',
-        'isi_konsultasi',
+        'asal_instansi',
         'dokumen',
         'nomor_antrian',     // 🆕 tambahan baru
         'status',
