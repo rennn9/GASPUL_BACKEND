@@ -290,11 +290,11 @@ public function selesaiHariIni()
             return $item;
         });
 
+    \Log::info('Jumlah antrian selesai hari ini:', ['count' => $antrian->count()]);
+
     return response()->json([
         'success' => true,
         'data' => $antrian
     ]);
-    \Log::info('Jumlah antrian:', ['count' => $antrian->count()]);
-
 }
 }
