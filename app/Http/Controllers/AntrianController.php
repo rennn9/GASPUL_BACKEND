@@ -9,6 +9,8 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use PDF;
 use Carbon\Carbon;
 use App\Services\TiketService;
+use App\Models\MonitorSetting;
+
 
 class AntrianController extends Controller
 {
@@ -238,10 +240,13 @@ class AntrianController extends Controller
     // ===========================
     // MONITOR ANTRIAN
     // ===========================
-    public function monitor()
-    {
-        return view('admin.monitor');
-    }
+public function monitor()
+{
+    // Ambil pengaturan monitor (video + running text)
+    $settings = MonitorSetting::first();
+
+    return view('admin.monitor.index', compact('settings'));
+}
 
     public function monitorData()
     {
