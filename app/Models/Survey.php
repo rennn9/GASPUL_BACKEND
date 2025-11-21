@@ -10,6 +10,7 @@ class Survey extends Model
     use HasFactory;
 
     protected $fillable = [
+        'antrian_id',
         'nomor_antrian',
         'nama_responden',
         'no_hp_wa',

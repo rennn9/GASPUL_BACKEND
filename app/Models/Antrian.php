@@ -48,7 +48,7 @@ class Antrian extends Model
 
     public function survey()
     {
-        return $this->hasOne(\App\Models\Survey::class, 'nomor_antrian', 'nomor_antrian');
+        return $this->hasOne(\App\Models\Survey::class, 'antrian_id', 'id');
     }
 
 }
