@@ -42,10 +42,10 @@ class SurveyController extends Controller
 public function store(Request $request)
 {
     $validated = $request->validate([
-        'antrian_id'       => 'nullable|integer|exists:antrian,id', // ✅ baru
+        'antrian_id'       => 'nullable|integer|exists:antrian,id',
         'nomor_antrian'    => 'nullable|string|max:10',
         'nama_responden'   => 'required|string|max:255',
-        'no_hp_wa'         => 'nullable|string|max:20', // ✅ ubah dari nomor_whatsapp
+        'no_hp_wa'         => 'nullable|string|max:20',
         'usia'             => 'nullable|integer',
         'jenis_kelamin'    => 'nullable|string|max:20',
         'pendidikan'       => 'nullable|string|max:100',
@@ -56,11 +56,24 @@ public function store(Request $request)
         'saran'            => 'nullable|string',
     ]);
 
+    // ✅ Jika nomor_antrian dikirim tapi antrian_id tidak, cari antrian_id berdasarkan nomor_antrian
+    $antrianId = $validated['antrian_id'] ?? null;
+
+    if (!$antrianId && !empty($validated['nomor_antrian'])) {
+        $antrian = \App\Models\Antrian::where('nomor_antrian', $validated['nomor_antrian'])
+            ->whereDate('tanggal_layanan', now('Asia/Makassar'))
+            ->first();
+
+        if ($antrian) {
+            $antrianId = $antrian->id;
+        }
+    }
+
     $survey = Survey::create([
-        'antrian_id'       => $validated['antrian_id'] ?? null, // ✅ simpan relasi
+        'antrian_id'       => $antrianId,
         'nomor_antrian'    => $validated['nomor_antrian'] ?? null,
         'nama_responden'   => $validated['nama_responden'],
-        'no_hp_wa'         => $validated['no_hp_wa'] ?? null, // ✅ ubah dari nomor_whatsapp
+        'no_hp_wa'         => $validated['no_hp_wa'] ?? null,
         'usia'             => $validated['usia'] ?? null,
         'jenis_kelamin'    => $validated['jenis_kelamin'] ?? null,
         'pendidikan'       => $validated['pendidikan'] ?? null,
