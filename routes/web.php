@@ -7,9 +7,10 @@ use App\Http\Controllers\AntrianController;
 use App\Http\Controllers\KonsultasiController;
 use App\Http\Controllers\StatistikPelayananController;
 use App\Http\Controllers\StatistikKonsultasiController;
-use App\Http\Controllers\StatistikSurveyController; // Statistik Survey (IKM)
+use App\Http\Controllers\StatistikSurveyController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SurveyController;
+use App\Http\Controllers\MonitorSettingController; // ← Tambahan
 
 // ===========================
 // AUTH ROUTES
@@ -24,7 +25,7 @@ Route::post('/logout', [AuthController::class, 'logout'])
     ->name('logout');
 
 // ===========================
-// ADMIN ROUTES (Protected by Auth)
+// ADMIN ROUTES (Protected)
 // ===========================
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
 
@@ -60,7 +61,6 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         // Download Excel Survey
         Route::get('/survey/download-excel', [StatistikSurveyController::class, 'downloadExcel'])
             ->name('survey.downloadExcel');
-            
     });
 
     // -----------------------
@@ -81,13 +81,41 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/antrian/delete', [AntrianController::class, 'delete'])
         ->name('antrian.delete');
 
-    // -----------------------
-    // Monitor Antrian
-    // -----------------------
-    Route::middleware('role:superadmin,admin,operator')->group(function () {
-        Route::get('/monitor', [AntrianController::class, 'monitor'])->name('monitor');
-        Route::get('/monitor/data', [AntrianController::class, 'monitorData'])->name('monitor.data');
-    });
+// -----------------------
+// Monitor Antrian + Settings
+// -----------------------
+Route::middleware('role:superadmin,admin,operator')->group(function () {
+
+    // Monitor tampilan (layar TV)
+    Route::get('/monitor', [AntrianController::class, 'monitor'])
+        ->name('monitor');
+
+    // Data JSON untuk monitor
+    Route::get('/monitor/data', [AntrianController::class, 'monitorData'])
+        ->name('monitor.data');
+
+
+    // ==========================
+    // Monitor SETTINGS
+    // ==========================
+
+    // Halaman pengaturan
+    Route::get('/monitor/settings', [MonitorSettingController::class, 'settings'])
+        ->name('monitor.settings');
+
+    // Simpan manual
+    Route::post('/monitor/settings/update', [MonitorSettingController::class, 'update'])
+        ->name('monitor.settings.update');
+
+    // Reset ke default
+    Route::post('/monitor/settings/reset', [MonitorSettingController::class, 'reset'])
+        ->name('monitor.settings.reset');
+
+    // AutoSave AJAX
+    Route::post('/monitor/settings/autosave', [MonitorSettingController::class, 'autosave'])
+        ->name('monitor.settings.autosave');
+});
+
 
     // -----------------------
     // Konsultasi

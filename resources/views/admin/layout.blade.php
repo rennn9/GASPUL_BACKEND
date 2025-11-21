@@ -200,6 +200,14 @@
                 </li>
                 @endif
 
+<li class="nav-item mb-2">
+    <a class="nav-link {{ request()->is('admin/monitor/settings') ? 'active' : '' }}"
+       href="{{ route('admin.monitor.settings') }}">
+        <i class="bi bi-gear me-2"></i> Pengaturan Monitor
+    </a>
+</li>
+
+
                 @if(Auth::user()->role === 'superadmin')
                 <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/users*') ? 'active' : '' }}"
