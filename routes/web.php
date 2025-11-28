@@ -10,7 +10,8 @@ use App\Http\Controllers\StatistikKonsultasiController;
 use App\Http\Controllers\StatistikSurveyController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SurveyController;
-use App\Http\Controllers\MonitorSettingController; // ← Tambahan
+use App\Http\Controllers\MonitorSettingController;
+use App\Http\Controllers\LayananPublikController; // ← Tambahan
 
 // ===========================
 // AUTH ROUTES
@@ -81,41 +82,34 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/antrian/delete', [AntrianController::class, 'delete'])
         ->name('antrian.delete');
 
-// -----------------------
-// Monitor Antrian + Settings
-// -----------------------
-Route::middleware('role:superadmin,admin,operator')->group(function () {
+    // -----------------------
+    // Monitor + Settings
+    // -----------------------
+    Route::middleware('role:superadmin,admin,operator')->group(function () {
 
-    // Monitor tampilan (layar TV)
-    Route::get('/monitor', [AntrianController::class, 'monitor'])
-        ->name('monitor');
+        // Monitor tampilan (TV)
+        Route::get('/monitor', [AntrianController::class, 'monitor'])
+            ->name('monitor');
 
-    // Data JSON untuk monitor
-    Route::get('/monitor/data', [AntrianController::class, 'monitorData'])
-        ->name('monitor.data');
+        // Data JSON monitor
+        Route::get('/monitor/data', [AntrianController::class, 'monitorData'])
+            ->name('monitor.data');
 
+        // ==========================
+        // Monitor Settings
+        // ==========================
+        Route::get('/monitor/settings', [MonitorSettingController::class, 'settings'])
+            ->name('monitor.settings');
 
-    // ==========================
-    // Monitor SETTINGS
-    // ==========================
+        Route::post('/monitor/settings/update', [MonitorSettingController::class, 'update'])
+            ->name('monitor.settings.update');
 
-    // Halaman pengaturan
-    Route::get('/monitor/settings', [MonitorSettingController::class, 'settings'])
-        ->name('monitor.settings');
+        Route::post('/monitor/settings/reset', [MonitorSettingController::class, 'reset'])
+            ->name('monitor.settings.reset');
 
-    // Simpan manual
-    Route::post('/monitor/settings/update', [MonitorSettingController::class, 'update'])
-        ->name('monitor.settings.update');
-
-    // Reset ke default
-    Route::post('/monitor/settings/reset', [MonitorSettingController::class, 'reset'])
-        ->name('monitor.settings.reset');
-
-    // AutoSave AJAX
-    Route::post('/monitor/settings/autosave', [MonitorSettingController::class, 'autosave'])
-        ->name('monitor.settings.autosave');
-});
-
+        Route::post('/monitor/settings/autosave', [MonitorSettingController::class, 'autosave'])
+            ->name('monitor.settings.autosave');
+    });
 
     // -----------------------
     // Konsultasi
@@ -150,4 +144,15 @@ Route::middleware('role:superadmin,admin,operator')->group(function () {
     Route::middleware('superadmin')->group(function () {
         Route::resource('users', UserController::class);
     });
+
+// Halaman daftar layanan publik
+Route::get('/layanan-publik', [LayananPublikController::class, 'index'])->name('layanan.index');
+
+// Halaman detail layanan publik
+Route::get('/layanan-publik/{id}', [LayananPublikController::class, 'show'])->name('layanan.show');
+
+// Hapus layanan publik
+Route::delete('/layanan-publik/{id}', [LayananPublikController::class, 'destroy'])->name('layanan.destroy');
+
 });
+

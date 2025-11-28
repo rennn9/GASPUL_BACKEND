@@ -173,6 +173,12 @@
                     </a>
                 </li>
                 <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/layanan-publik*') ? 'active' : '' }}"
+                    href="{{ route('admin.layanan.index') }}">
+                        <i class="bi bi-file-earmark-text me-2"></i> Layanan Publik
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/dashboard*') ? 'active' : '' }}"
                        href="{{ route('admin.dashboard') }}">
                         <i class="bi bi-card-checklist me-2"></i> Daftar Antrian
@@ -200,12 +206,12 @@
                 </li>
                 @endif
 
-<li class="nav-item mb-2">
-    <a class="nav-link {{ request()->is('admin/monitor/settings') ? 'active' : '' }}"
-       href="{{ route('admin.monitor.settings') }}">
-        <i class="bi bi-gear me-2"></i> Pengaturan Monitor
-    </a>
-</li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/monitor/settings') ? 'active' : '' }}"
+                    href="{{ route('admin.monitor.settings') }}">
+                        <i class="bi bi-gear me-2"></i> Pengaturan Monitor
+                    </a>
+                </li>
 
 
                 @if(Auth::user()->role === 'superadmin')

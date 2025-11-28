@@ -6,6 +6,8 @@ use App\Http\Controllers\StatistikPelayananController;
 use App\Http\Controllers\KonsultasiController;
 use App\Http\Controllers\SurveyController; // ✅ Tambahkan controller survey
 use Carbon\Carbon;
+use App\Http\Controllers\LayananPublikController;
+
 
 // ===============================
 // 📌 RUTE ANTRIAN
@@ -41,4 +43,11 @@ Route::get('/server-time', function () {
 // ✅ ANTRIAN SELESAI HARI INI
 // ===============================
 Route::get('/antrian/selesai-hari-ini', [AntrianController::class, 'selesaiHariIni']);
+
+// ===============================
+// 📢LAYANAN PUBLIK
+// ===============================
+Route::post('/layanan', [LayananPublikController::class, 'store']);
+Route::get('/layanan/generate-no-registrasi', [LayananPublikController::class, 'generateNomorRegistrasi']);
+
 
