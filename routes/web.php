@@ -43,23 +43,18 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     Route::prefix('statistik')->name('statistik.')->group(function () {
 
-        // Pelayanan
         Route::get('/pelayanan', [StatistikPelayananController::class, 'index'])
             ->name('pelayanan');
 
-        // Konsultasi
         Route::get('/konsultasi', [StatistikKonsultasiController::class, 'index'])
             ->name('konsultasi');
 
-        // Survey (IKM)
         Route::get('/survey', [StatistikSurveyController::class, 'index'])
             ->name('survey');
 
-        // Reset Periode Survey
         Route::post('/survey/reset-periode', [StatistikSurveyController::class, 'resetPeriode'])
             ->name('survey.resetPeriode');
 
-        // Download Excel Survey
         Route::get('/survey/download-excel', [StatistikSurveyController::class, 'downloadExcel'])
             ->name('survey.downloadExcel');
     });
@@ -87,17 +82,12 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // -----------------------
     Route::middleware('role:superadmin,admin,operator')->group(function () {
 
-        // Monitor tampilan (TV)
         Route::get('/monitor', [AntrianController::class, 'monitor'])
             ->name('monitor');
 
-        // Data JSON monitor
         Route::get('/monitor/data', [AntrianController::class, 'monitorData'])
             ->name('monitor.data');
 
-        // ==========================
-        // Monitor Settings
-        // ==========================
         Route::get('/monitor/settings', [MonitorSettingController::class, 'settings'])
             ->name('monitor.settings');
 
@@ -145,14 +135,14 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::resource('users', UserController::class);
     });
 
-// Halaman daftar layanan publik
-Route::get('/layanan-publik', [LayananPublikController::class, 'index'])->name('layanan.index');
+    // -----------------------
+    // Layanan Publik
+    // -----------------------
+    Route::get('/layanan-publik', [LayananPublikController::class, 'index'])->name('layanan.index');
+    Route::get('/layanan-publik/{id}', [LayananPublikController::class, 'show'])->name('layanan.show');
+    Route::delete('/layanan-publik/{id}', [LayananPublikController::class, 'destroy'])->name('layanan.destroy');
 
-// Halaman detail layanan publik
-Route::get('/layanan-publik/{id}', [LayananPublikController::class, 'show'])->name('layanan.show');
-
-// Hapus layanan publik
-Route::delete('/layanan-publik/{id}', [LayananPublikController::class, 'destroy'])->name('layanan.destroy');
+    // Tambahan: Route untuk addStatus dari form modal
+    Route::post('/layanan-publik/{id}/add-status', [LayananPublikController::class, 'addStatus'])->name('layanan.addStatus');
 
 });
-

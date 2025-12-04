@@ -14,6 +14,7 @@ class User extends Authenticatable
         'name',
         'password',
         'role',
+        'bidang', // kolom baru
     ];
 
     protected $hidden = [

@@ -41,8 +41,27 @@
             <option value="superadmin" {{ old('role') == 'superadmin' ? 'selected' : '' }}>Superadmin</option>
             <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
             <option value="operator" {{ old('role') == 'operator' ? 'selected' : '' }}>Operator</option>
+            <option value="operator_bidang" {{ old('role') == 'operator_bidang' ? 'selected' : '' }}>Operator Bidang</option>
+            <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>User</option>
         </select>
         @error('role')
+            <div class="text-danger">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="mb-3" id="bidang-container" style="display: none;">
+        <label for="bidang" class="form-label">Bidang</label>
+        <select name="bidang" id="bidang" class="form-select">
+            <option value="">-- Pilih Bidang --</option>
+            <option value="Bagian Tata Usaha">Bagian Tata Usaha</option>
+            <option value="Bidang Bimbingan Masyarakat Islam">Bidang Bimbingan Masyarakat Islam</option>
+            <option value="Bidang Pendidikan Madrasah">Bidang Pendidikan Madrasah</option>
+            <option value="Bimas Kristen">Bimas Kristen</option>
+            <option value="Bimas Katolik">Bimas Katolik</option>
+            <option value="Bimas Hindu">Bimas Hindu</option>
+            <option value="Bimas Buddha">Bimas Buddha</option>
+        </select>
+        @error('bidang')
             <div class="text-danger">{{ $message }}</div>
         @enderror
     </div>
@@ -52,4 +71,21 @@
     </button>
     <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">Batal</a>
 </form>
+
+<script>
+    const roleSelect = document.getElementById('role');
+    const bidangContainer = document.getElementById('bidang-container');
+
+    roleSelect.addEventListener('change', () => {
+        if(roleSelect.value === 'operator_bidang') {
+            bidangContainer.style.display = 'block';
+        } else {
+            bidangContainer.style.display = 'none';
+        }
+    });
+
+    if(roleSelect.value === 'operator_bidang') {
+        bidangContainer.style.display = 'block';
+    }
+</script>
 @endsection

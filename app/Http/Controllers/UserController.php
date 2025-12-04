@@ -21,7 +21,7 @@ class UserController extends Controller
         }
 
         try {
-            $users = \App\Models\User::paginate(10); // pagination 10 per halaman
+            $users = User::paginate(10); // pagination 10 per halaman
             Log::info('Jumlah user ditemukan: ' . $users->count());
         } catch (\Exception $e) {
             Log::error('Error saat mengambil user: ' . $e->getMessage());
@@ -44,7 +44,8 @@ class UserController extends Controller
             'nip' => 'required|string|unique:users,nip',
             'name' => 'required|string|max:255',
             'password' => 'required|string|min:6|confirmed',
-            'role' => 'required|in:superadmin,admin,operator',
+            'role' => 'required|in:superadmin,admin,operator,operator_bidang,user',
+            'bidang' => 'nullable|string|in:Bagian Tata Usaha,Bidang Bimbingan Masyarakat Islam,Bidang Pendidikan Madrasah,Bimas Kristen,Bimas Katolik,Bimas Hindu,Bimas Buddha',
         ]);
 
         User::create([
@@ -52,6 +53,7 @@ class UserController extends Controller
             'name' => $validated['name'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
+            'bidang' => $validated['role'] === 'operator_bidang' ? $validated['bidang'] : null,
         ]);
 
         return redirect()->route('admin.users.index')->with('success', 'User berhasil ditambahkan');
@@ -70,12 +72,14 @@ class UserController extends Controller
             'nip' => 'required|string|unique:users,nip,' . $user->id,
             'name' => 'required|string|max:255',
             'password' => 'nullable|string|min:6|confirmed',
-            'role' => 'required|in:superadmin,admin',
+            'role' => 'required|in:superadmin,admin,operator,operator_bidang,user',
+            'bidang' => 'nullable|string|in:Bagian Tata Usaha,Bidang Bimbingan Masyarakat Islam,Bidang Pendidikan Madrasah,Bimas Kristen,Bimas Katolik,Bimas Hindu,Bimas Buddha',
         ]);
 
         $user->nip = $validated['nip'];
         $user->name = $validated['name'];
         $user->role = $validated['role'];
+        $user->bidang = $validated['role'] === 'operator_bidang' ? $validated['bidang'] : null;
         if(!empty($validated['password'])){
             $user->password = Hash::make($validated['password']);
         }
