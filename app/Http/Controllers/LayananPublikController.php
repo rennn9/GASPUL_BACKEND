@@ -31,41 +31,79 @@ class LayananPublikController extends Controller
     }
 
 
-    // =========================================================
-    // GENERATE NOMOR REGISTRASI
-    // =========================================================
-    public function generateNomorRegistrasi(Request $request)
-    {
-        $request->validate([
-            'bidang' => 'required',
-            'layanan' => 'required',
-        ]);
+// =========================================================
+// GENERATE NOMOR REGISTRASI (LOG DETAIL)
+// =========================================================
+public function generateNomorRegistrasi(Request $request)
+{
+    Log::info('[START] Generate Nomor Registrasi', [
+        'request_data' => $request->all()
+    ]);
 
-        $bidang = $request->bidang;
-        $layanan = $request->layanan;
+    // ===============================
+    // 1. VALIDASI INPUT
+    // ===============================
+    $request->validate([
+        'bidang' => 'required',
+        'layanan' => 'required',
+    ]);
 
-        $config = config('layanan');
+    $bidang = $request->bidang;
+    $layanan = $request->layanan;
 
-        $urutanBidang = str_pad($config['bidang'][$bidang], 2, "0", STR_PAD_LEFT);
-        $urutanLayanan = str_pad($config['layanan'][$bidang][$layanan], 2, "0", STR_PAD_LEFT);
-        $tgl = now()->format('Ymd');
+    Log::info('[VALIDASI] Input diterima', [
+        'bidang' => $bidang,
+        'layanan' => $layanan
+    ]);
 
-        $counter = LayananPublik::count() + 1;
-        $XXX = str_pad($counter, max(3, strlen($counter)), '0', STR_PAD_LEFT);
+    // ===============================
+    // 2. AMBIL KONFIGURASI
+    // ===============================
+    $config = config('layanan');
+    Log::info('[CONFIG] Konfigurasi layanan diambil', [
+        'config_bidang' => $config['bidang'] ?? null,
+        'config_layanan' => $config['layanan'][$bidang] ?? null
+    ]);
 
-        $no = "$tgl/$urutanBidang/$urutanLayanan/$XXX";
+    // ===============================
+    // 3. HITUNG URUTAN BIDANG & LAYANAN
+    // ===============================
+    $urutanBidang = str_pad($config['bidang'][$bidang] ?? 0, 2, "0", STR_PAD_LEFT);
+    $urutanLayanan = str_pad($config['layanan'][$bidang][$layanan] ?? 0, 2, "0", STR_PAD_LEFT);
 
-        Log::info('Generate Nomor Registrasi', [
-            'bidang' => $bidang,
-            'layanan' => $layanan,
-            'no_registrasi' => $no
-        ]);
+    Log::info('[URUTAN] Urutan bidang & layanan dihitung', [
+        'urutan_bidang' => $urutanBidang,
+        'urutan_layanan' => $urutanLayanan
+    ]);
 
-        return response()->json([
-            'success' => true,
-            'no_registrasi' => $no
-        ]);
-    }
+    // ===============================
+    // 4. TANGGAL DAN COUNTER
+    // ===============================
+    $tgl = now()->format('Ymd');
+    $counter = LayananPublik::count() + 1;
+    $XXX = str_pad($counter, max(3, strlen($counter)), '0', STR_PAD_LEFT);
+
+    Log::info('[COUNTER] Counter & format nomor', [
+        'tanggal' => $tgl,
+        'counter' => $counter,
+        'XXX' => $XXX
+    ]);
+
+    // ===============================
+    // 5. GENERATE NOMOR REGISTRASI
+    // ===============================
+    $no = "$tgl/$urutanBidang/$urutanLayanan/$XXX";
+
+    Log::info('[END] Nomor Registrasi berhasil dibuat', [
+        'no_registrasi' => $no
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'no_registrasi' => $no
+    ]);
+}
+
 
 
     // =========================================================

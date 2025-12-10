@@ -14,77 +14,115 @@ use App\Models\MonitorSetting;
 
 class AntrianController extends Controller
 {
-    // ===========================
-    // SUBMIT ANTRIAN BARU
-    // ===========================
-    public function submit(Request $request)
-    {
-        try {
-            // 1️⃣ Validasi input
-            $validated = $request->validate([
-                'nama_lengkap'    => 'required|string|max:255',
-                'no_hp_wa'        => 'required|string|max:20',
-                'email'           => 'nullable|email|max:255',
-                'alamat'          => 'required|string',
-                'bidang_layanan'  => 'required|string',
-                'layanan'         => 'required|string',
-                'tanggal_layanan' => 'required|date',
-                'keterangan'      => 'nullable|string',
-            ]);
+// ===========================
+// SUBMIT ANTRIAN BARU (SUPER LOG DETAIL)
+// ===========================
+public function submit(Request $request)
+{
+    \Log::info("[ANTRIAN_SUBMIT] ==== START SUBMIT ANTRIAN ====");
+    \Log::info("[ANTRIAN_SUBMIT] Incoming Request Payload:", $request->all());
 
-            // 2️⃣ Generate nomor antrian (GLOBAL per tanggal)
-            $count = Antrian::whereDate('tanggal_layanan', $validated['tanggal_layanan'])->count();
-            $nomor_antrian = $count + 1;
-            $validated['nomor_antrian'] = sprintf('%03d', $nomor_antrian);
+    try {
 
-            // 3️⃣ Generate QR Code Base64
-            $qrContent = json_encode([
-                'nomor_antrian'  => $validated['nomor_antrian'],
-                'bidang_layanan' => $validated['bidang_layanan'],
-                'tanggal_layanan'=> $validated['tanggal_layanan'],
-            ]);
+        // 1️⃣ Validasi input
+        \Log::info("[ANTRIAN_SUBMIT] 1. Validasi input...");
+        $validated = $request->validate([
+            'nama_lengkap'    => 'required|string|max:255',
+            'no_hp_wa'        => 'required|string|max:20',
+            'email'           => 'nullable|email|max:255',
+            'alamat'          => 'required|string',
+            'bidang_layanan'  => 'required|string',
+            'layanan'         => 'required|string',
+            'tanggal_layanan' => 'required|date',
+            'keterangan'      => 'nullable|string',
+        ]);
+        \Log::info("[ANTRIAN_SUBMIT] Validasi OK:", $validated);
 
-            $validated['qr_code_data'] = base64_encode(
-                QrCode::format('svg')->size(150)->generate($qrContent)
-            );
 
-            // 4️⃣ Status default = Diproses
-            $validated['status'] = 'Diproses';
+        // 2️⃣ Generate nomor antrian (GLOBAL per tanggal)
+        \Log::info("[ANTRIAN_SUBMIT] 2. Generate nomor antrian...");
+        $count = Antrian::whereDate('tanggal_layanan', $validated['tanggal_layanan'])->count();
+        \Log::info("[ANTRIAN_SUBMIT] Jumlah antrian hari tersebut: {$count}");
 
-            // 5️⃣ Simpan ke database
-            $antrian = Antrian::create($validated);
+        $nomor_antrian = $count + 1;
+        $validated['nomor_antrian'] = sprintf('%03d', $nomor_antrian);
 
-            // 6️⃣ Generate tiket PDF lewat TiketService
-            $tiket = TiketService::generateTiket($antrian, false);
+        \Log::info("[ANTRIAN_SUBMIT] Nomor antrian final: " . $validated['nomor_antrian']);
 
-            // 🔟 Kirim respons JSON ke Flutter
-            return response()->json([
-                'success'        => true,
-                'nomor_antrian'  => $antrian->nomor_antrian,
-                'pdf_url'        => $tiket['pdf_url'],
-                'qr_code_data'   => $tiket['qr_code_base64'],
-            ]);
-        } 
-        catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors'  => $e->errors(),
-            ], 422);
-        } 
-        catch (\Exception $e) {
-            \Log::error('Error submit antrian: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan saat memproses data',
-                'error'   => $e->getMessage(),
-                'line'    => $e->getLine(),
-                'file'    => $e->getFile(),
-            ], 500);
-        }
+        // 3️⃣ Generate QR Code Base64
+        \Log::info("[ANTRIAN_SUBMIT] 3. Generate QR Code...");
+        $qrContent = json_encode([
+            'nomor_antrian'   => $validated['nomor_antrian'],
+            'bidang_layanan'  => $validated['bidang_layanan'],
+            'tanggal_layanan' => $validated['tanggal_layanan'],
+        ], JSON_PRETTY_PRINT);
+
+        \Log::info("[ANTRIAN_SUBMIT] QR Content:", ['data' => $qrContent]);
+
+        $qrSVG = QrCode::format('svg')->size(150)->generate($qrContent);
+        $validated['qr_code_data'] = base64_encode($qrSVG);
+
+        \Log::info("[ANTRIAN_SUBMIT] QR Code berhasil digenerate (base64 length: " . strlen($validated['qr_code_data']) . ")");
+
+
+        // 4️⃣ Status default = Diproses
+        \Log::info("[ANTRIAN_SUBMIT] 4. Set status default...");
+        $validated['status'] = 'Diproses';
+
+
+        // 5️⃣ Simpan ke database
+        \Log::info("[ANTRIAN_SUBMIT] 5. Simpan ke DB...");
+        $antrian = Antrian::create($validated);
+        \Log::info("[ANTRIAN_SUBMIT] Data tersimpan ke DB:", $antrian->toArray());
+
+
+        // 6️⃣ Generate tiket PDF lewat TiketService
+        \Log::info("[ANTRIAN_SUBMIT] 6. Generate PDF Ticket...");
+        $tiket = TiketService::generateTiket($antrian, false);
+
+        \Log::info("[ANTRIAN_SUBMIT] PDF Ticket generated:", [
+            'pdf_url' => $tiket['pdf_url'],
+            'qr_base64_length' => strlen($tiket['qr_code_base64'] ?? '')
+        ]);
+
+
+        // 🔟 Kirim respons JSON ke Flutter
+        \Log::info("[ANTRIAN_SUBMIT] ==== SUCCESS SUBMIT ANTRIAN ====");
+
+        return response()->json([
+            'success'        => true,
+            'nomor_antrian'  => $antrian->nomor_antrian,
+            'pdf_url'        => $tiket['pdf_url'],
+            'qr_code_data'   => $tiket['qr_code_base64'],
+        ]);
+    } 
+
+    catch (\Illuminate\Validation\ValidationException $e) {
+        \Log::warning("[ANTRIAN_SUBMIT] VALIDATION ERROR:", $e->errors());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Validasi gagal',
+            'errors'  => $e->errors(),
+        ], 422);
+    } 
+
+    catch (\Exception $e) {
+
+        \Log::error("[ANTRIAN_SUBMIT] GENERAL ERROR: " . $e->getMessage());
+        \Log::error("[ANTRIAN_SUBMIT] File: " . $e->getFile() . " Line: " . $e->getLine());
+        \Log::error("[ANTRIAN_SUBMIT] Trace:", ['trace' => $e->getTraceAsString()]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan saat memproses data',
+            'error'   => $e->getMessage(),
+            'line'    => $e->getLine(),
+            'file'    => $e->getFile(),
+        ], 500);
     }
+}
 
     // ===========================
     // TAMPILKAN SEMUA ANTRIAN

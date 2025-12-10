@@ -7,7 +7,7 @@
     </title>
     <style>
         @page {
-            size: A4 landscape; /* 🔄 Orientasi lanskap */
+            size: A4 landscape;
             margin: 15px;
         }
         body {
@@ -37,14 +37,32 @@
             font-size: 10px;
             margin-bottom: 10px;
         }
+        /* ⭐ Logo di pojok kanan */
+        .logo-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        .logo-container img {
+            width: 80px;
+        }
     </style>
 </head>
 <body>
+
+    <!-- ⭐ Logo absolut, pojok kanan -->
+    <div class="logo-container">
+        <img src="{{ public_path('assets/images/logo-gaspul.png') }}" alt="Logo GASPUL">
+    </div>
+
     <h3>
         Daftar Konsultasi - {{ ucfirst($status) }}
     </h3>
+
     <div class="header-info">
-        Dicetak pada: {{ now()->translatedFormat('l, d F Y H:i') }}
+        Total Data: <strong>{{ $konsultasis->count() }}</strong><br>
+        Dicetak pada: {{ now()->translatedFormat('l, d F Y H:i') }}<br>
+        Dicetak oleh: {{ auth()->user()->name ?? 'Sistem' }}
     </div>
 
     <table>
@@ -89,5 +107,6 @@
             @endforelse
         </tbody>
     </table>
+
 </body>
 </html>

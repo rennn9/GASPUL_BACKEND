@@ -15,10 +15,9 @@
             height: 100%;
             margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden; /* ❗ agar scroll hanya di area konten */
+            overflow: hidden;
         }
 
-        /* Layout dasar */
         .layout-wrapper {
             display: flex;
             height: 100vh;
@@ -57,17 +56,12 @@
             border-top: 1px solid rgba(255,255,255,0.3);
             margin: 1rem 0;
         }
-        .sidebar .badge {
-            font-size: 0.95rem;
-            padding: 0.5em 0.75em;
-            border-radius: 0.5rem;
-            font-weight: 600;
-        }
-        .copyright {
+        .sidebar-section-title {
+            text-transform: uppercase;
             font-size: 0.85rem;
-            text-align: center;
-            margin-top: 10px;
-            color: rgba(255,255,255,0.8);
+            opacity: 0.8;
+            margin-top: 20px;
+            margin-bottom: 6px;
         }
 
         /* App Bar */
@@ -85,13 +79,15 @@
             right: 0;
             z-index: 900;
         }
+
         .app-bar button {
             background: none;
             border: none;
             color: #fff;
             font-size: 1.4rem;
         }
-        .app-bar .user-logout-container {
+
+        .user-logout-container {
             display: flex;
             align-items: center;
             background-color: #dc3545;
@@ -102,7 +98,7 @@
             font-size: 0.9rem;
             gap: 6px;
         }
-        .app-bar .user-logout-container button {
+        .user-logout-container button {
             background: none;
             border: none;
             color: #fff;
@@ -122,36 +118,28 @@
             overflow: auto;
         }
 
-        /* Sidebar hidden */
         .sidebar.hidden {
             transform: translateX(-100%);
-            transition: transform 0.3s ease;
+            transition: 0.3s ease;
         }
         .content.full-width {
             left: 0;
-            transition: left 0.3s ease;
-        }
-
-        /* Scrollbar rapi */
-        ::-webkit-scrollbar {
-            height: 8px;
-            width: 8px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(0,0,0,0.2);
-            border-radius: 5px;
+            transition: 0.3s ease;
         }
     </style>
 </head>
 
 <body>
 <div class="layout-wrapper">
+
     <!-- Sidebar -->
     <div class="sidebar p-4 text-white" id="sidebar">
+
         <div>
             <div class="text-center mb-3">
-                <img src="{{ asset('assets/images/logo-gaspul.png') }}" alt="Logo Gaspul" class="logo mb-2">
+                <img src="{{ asset('assets/images/logo-gaspul.png') }}" class="logo mb-2">
                 <h5 class="fw-bold mb-1">Admin GASPUL</h5>
+
                 @auth
                 <span class="badge
                     @if(Auth::user()->role === 'superadmin') bg-danger
@@ -162,9 +150,18 @@
                 </span>
                 @endauth
             </div>
+
             <div class="sidebar-divider"></div>
 
-            <p class="fw-bold mt-4">Menu</p>
+            @php
+                $role = Auth::user()->role;
+            @endphp
+
+            {{-- ======================= --}}
+            {{-- DASHBOARD / STATISTIK --}}
+            {{-- ======================= --}}
+            @if(in_array($role, ['superadmin','admin','operator']))
+            <p class="sidebar-section-title">Dashboard</p>
             <ul class="nav flex-column ms-2">
                 <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/statistik*') ? 'active' : '' }}"
@@ -172,68 +169,108 @@
                         <i class="bi bi-bar-chart-line me-2"></i> Statistik
                     </a>
                 </li>
+            </ul>
+            @endif
+
+
+            {{-- =============== --}}
+            {{-- LAYANAN PUBLIK --}}
+            {{-- =============== --}}
+            <p class="sidebar-section-title">Layanan</p>
+            <ul class="nav flex-column ms-2">
                 <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/layanan-publik*') ? 'active' : '' }}"
-                    href="{{ route('admin.layanan.index') }}">
+                       href="{{ route('admin.layanan.index') }}">
                         <i class="bi bi-file-earmark-text me-2"></i> Layanan Publik
                     </a>
                 </li>
-                <li class="nav-item mb-2">
-                    <a class="nav-link {{ request()->is('admin/dashboard*') ? 'active' : '' }}"
-                       href="{{ route('admin.dashboard') }}">
-                        <i class="bi bi-card-checklist me-2"></i> Daftar Antrian
-                    </a>
-                </li>
+
+                @if(in_array($role, ['superadmin','admin','operator']))
                 <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/konsultasi*') ? 'active' : '' }}"
                        href="{{ route('admin.konsultasi') }}">
-                        <i class="bi bi-chat-dots me-2"></i> Layanan Konsultasi
+                        <i class="bi bi-chat-dots me-2"></i> Konsultasi
                     </a>
                 </li>
+
                 <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/survey*') ? 'active' : '' }}"
                        href="{{ route('admin.survey.index') }}">
                         <i class="bi bi-ui-checks-grid me-2"></i> Survey Kepuasan
                     </a>
                 </li>
+                @endif
+            </ul>
 
-                @if(in_array(Auth::user()->role, ['superadmin', 'admin', 'operator']))
+
+            {{-- ========= --}}
+            {{-- ANTRIAN --}}
+            {{-- ========= --}}
+            @if(in_array($role, ['superadmin','admin','operator']))
+            <p class="sidebar-section-title">Antrian</p>
+            <ul class="nav flex-column ms-2">
+
+                <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/dashboard*') ? 'active' : '' }}"
+                       href="{{ route('admin.dashboard') }}">
+                        <i class="bi bi-card-checklist me-2"></i> Daftar Antrian
+                    </a>
+                </li>
+
                 <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/monitor*') ? 'active' : '' }}"
                        href="{{ route('admin.monitor') }}">
                         <i class="bi bi-display me-2"></i> Monitor Antrian
                     </a>
                 </li>
-                @endif
 
+            </ul>
+            @endif
+
+
+            {{-- ================= --}}
+            {{-- PENGATURAN --}}
+            {{-- ================= --}}
+            @if(in_array($role, ['superadmin','admin','operator']))
+            <p class="sidebar-section-title">Pengaturan</p>
+            <ul class="nav flex-column ms-2">
                 <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/monitor/settings') ? 'active' : '' }}"
-                    href="{{ route('admin.monitor.settings') }}">
+                       href="{{ route('admin.monitor.settings') }}">
                         <i class="bi bi-gear me-2"></i> Pengaturan Monitor
                     </a>
                 </li>
+            </ul>
+            @endif
 
 
-                @if(Auth::user()->role === 'superadmin')
+            {{-- ===================== --}}
+            {{-- USER MANAGEMENT --}}
+            {{-- ===================== --}}
+            @if(in_array($role, ['superadmin','admin']))
+            <p class="sidebar-section-title">Manajemen</p>
+            <ul class="nav flex-column ms-2">
                 <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/users*') ? 'active' : '' }}"
                        href="{{ route('admin.users.index') }}">
                         <i class="bi bi-people me-2"></i> User Management
                     </a>
                 </li>
-                @endif
             </ul>
+            @endif
+
         </div>
 
-        <div class="copyright mt-4">© Sistem Informasi dan Data</div>
+        <div class="copyright mt-4 text-center">
+            © Sistem Informasi dan Data
+        </div>
     </div>
+
 
     <!-- App Bar -->
     <div class="app-bar">
         <div class="left-section">
-            <button id="toggleSidebar" title="Toggle Sidebar">
-                <i class="bi bi-list"></i>
-            </button>
+            <button id="toggleSidebar"><i class="bi bi-list"></i></button>
             <span>Dashboard Admin</span>
         </div>
 
@@ -255,26 +292,28 @@
         </div>
     </div>
 
+
     <!-- Content -->
     <div class="content" id="mainContent">
         @yield('content')
     </div>
+
 </div>
 
-<!-- Bootstrap JS -->
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    const toggleBtn = document.getElementById('toggleSidebar');
-    const sidebar = document.getElementById('sidebar');
-    const content = document.getElementById('mainContent');
-    const appBar = document.querySelector('.app-bar');
+    document.getElementById('toggleSidebar').onclick = () => {
+        const sidebar = document.getElementById('sidebar');
+        const content = document.getElementById('mainContent');
+        const appBar = document.querySelector('.app-bar');
 
-    toggleBtn.addEventListener('click', () => {
         sidebar.classList.toggle('hidden');
         content.classList.toggle('full-width');
         appBar.style.left = sidebar.classList.contains('hidden') ? '0' : '260px';
-    });
+    };
 </script>
+
 </body>
 </html>

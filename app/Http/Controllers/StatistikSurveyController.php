@@ -7,46 +7,26 @@ use App\Models\Survey;
 use App\Exports\SurveyRespondenExport;
 use Maatwebsite\Excel\Facades\Excel;
 
-
 class StatistikSurveyController extends Controller
 {
     public function index(Request $request)
     {
         // ============================================
-        // 1. Ambil tanggal default dari database
+        // 1. Ambil tanggal default
         // ============================================
         $defaultAwal  = Survey::min('tanggal');
         $defaultAkhir = Survey::max('tanggal');
 
-        // ============================================
-        // 2. Ambil tanggal dari filter (jika ada)
-        // ============================================
-$awal  = $request->has('awal')  && $request->awal !== ''  ? $request->awal  : $defaultAwal;
-$akhir = $request->has('akhir') && $request->akhir !== '' ? $request->akhir : $defaultAkhir;
-
-
+        $awal  = $request->awal ?: $defaultAwal;
+        $akhir = $request->akhir ?: $defaultAkhir;
 
         // ============================================
-        // 3. Query berdasarkan periode
+        // 2. Query berdasarkan periode
         // ============================================
         $surveys = Survey::whereBetween('tanggal', [$awal, $akhir])->get();
-        $totalResponden = $surveys->count();
-
-if ($totalResponden === 0) {
-    return view('admin.statistik.survey', [
-        'rataPerUnsur'    => [],
-        'ikmTotal'        => 0,
-        'mutuTotal'       => 'Belum Ada Data',
-        'totalResponden'  => 0,
-        'respondenData'   => [],
-        'surveys'         => collect(), // 🟢 ubah jadi Collection kosong
-        'periodeAwal'     => $awal,
-        'periodeAkhir'    => $akhir,
-    ]);
-}
 
         // ============================================
-        // 4. Mapping pertanyaan ke U1–U9
+        // 3. Mapping pertanyaan ke U1–U9
         // ============================================
         $mapping = [
             "Bagaimana pendapat Saudara tentang kesesuaian persyaratan pelayanan dengan jenis pelayanannya?" => "U1",
@@ -60,39 +40,88 @@ if ($totalResponden === 0) {
             "Bagaimana pendapat Saudara tentang penanganan pengaduan pengguna layanan?" => "U9",
         ];
 
-        $unsurNilai = [];
         $respondenData = [];
+        $unsurNilai = [];
+        $validIndex = 0;
 
         // ============================================
-        // 5. Ambil nilai per responden per unsur
+        // 4. Ambil nilai responden + DROP nilai 0 atau tidak lengkap
         // ============================================
-        foreach ($surveys as $i => $survey) {
+        foreach ($surveys as $survey) {
 
-            $jawaban = is_string($survey->jawaban)
-                ? json_decode($survey->jawaban, true)
-                : $survey->jawaban;
+$jawaban = $survey->jawaban;
 
-            if (!is_array($jawaban)) continue;
+// Decode pertama
+$jawaban = is_string($jawaban) ? json_decode($jawaban, true) : $jawaban;
 
-            foreach ($jawaban as $pertanyaan => $data) {
+// Kalau masih string → decode kedua
+if (is_string($jawaban)) {
+    $jawaban = json_decode($jawaban, true);
+}
 
-                if (!isset($data['nilai']) || $data['nilai'] <= 0) continue;
+// Jika tetap bukan array → skip
+if (!is_array($jawaban)) {
+    continue;
+}
 
-                $key = $mapping[$pertanyaan] ?? null;
-                if (!$key) continue;
+            $tempResponden = [];
+            $dropResponden = false;
 
-                $nilai = floatval($data['nilai']);
+            foreach ($mapping as $pertanyaan => $kodeUnsur) {
 
-                // Nilai setiap responden (untuk tabel)
-                $respondenData[$i][$key] = $nilai;
+                if (!isset($jawaban[$pertanyaan]['nilai'])) {
+                    $dropResponden = true;
+                    break;
+                }
 
-                // Nilai global
-                $unsurNilai[$key][] = $nilai;
+                $nilai = floatval($jawaban[$pertanyaan]['nilai']);
+
+                if ($nilai == 0) {
+                    $dropResponden = true;
+                    break;
+                }
+
+                $tempResponden[$kodeUnsur] = $nilai;
             }
+
+            // Drop jika ada nilai 0 atau unsur tidak lengkap
+            if ($dropResponden || count($tempResponden) < 9) {
+                continue;
+            }
+
+            // Responden valid → simpan dengan index berurutan
+            $respondenData[$validIndex] = $tempResponden;
+
+            foreach ($tempResponden as $kode => $nilai) {
+                $unsurNilai[$kode][] = $nilai;
+            }
+
+            $validIndex++;
+        }
+
+        // Hitung ulang total responden valid
+        $totalResponden = count($respondenData);
+
+        // Jika tidak ada responden valid
+        if ($totalResponden == 0) {
+            return view('admin.statistik.survey', [
+                'rataPerUnsur'             => [],
+                'jumlahPerUnsur'           => [],
+                'rata2PerUnsur'            => [],
+                'rataTertimbangPerUnsur'   => [],
+                'totalWeighted'            => 0,
+                'ikmTotal'                 => 0,
+                'mutuTotal'                => 'Belum Ada Data',
+                'totalResponden'           => 0,
+                'respondenData'            => [],
+                'surveys'                  => collect(),
+                'periodeAwal'              => $awal,
+                'periodeAkhir'             => $akhir,
+            ]);
         }
 
         // ============================================
-        // 6. Hitung rata-rata U1–U9
+        // 5. Hitung rata-rata per unsur
         // ============================================
         $rataPerUnsur = [];
         foreach ($unsurNilai as $u => $nilaiArray) {
@@ -100,15 +129,30 @@ if ($totalResponden === 0) {
         }
 
         // ============================================
-        // 7. Hitung IKM
+        // 6. Hitung tabel per unsur
         // ============================================
-        $sumAvg = array_sum($rataPerUnsur);
-        $ikmUnit = count($rataPerUnsur) > 0
-            ? round(($sumAvg / count($rataPerUnsur)) * 25, 2)
-            : 0;
+        $jumlahPerUnsur = [];
+        $rata2PerUnsur = [];
+        $rataTertimbangPerUnsur = [];
+        $totalWeighted = 0;
+
+        foreach ($rataPerUnsur as $u => $avg) {
+            $jumlahPerUnsur[$u] = round($avg * $totalResponden, 2);
+            $rata2PerUnsur[$u] = round($avg, 2);
+            $rataTertimbangPerUnsur[$u] = round($avg * 25, 2);
+            $totalWeighted += ($avg * 25);
+        }
+
+        $totalWeighted = round($totalWeighted, 2);
 
         // ============================================
-        // 8. Tentukan Mutu
+        // 7. Hitung IKM Unit
+        // ============================================
+        $sumAvg = array_sum($rataPerUnsur);
+        $ikmUnit = round(($sumAvg / count($rataPerUnsur)) * 25, 2);
+
+        // ============================================
+        // 8. Tentukan kategori mutu
         // ============================================
         $kategori = match (true) {
             $ikmUnit >= 88.31 => 'A (Sangat Baik)',
@@ -121,34 +165,38 @@ if ($totalResponden === 0) {
         // 9. Return ke view
         // ============================================
         return view('admin.statistik.survey', [
-            'rataPerUnsur'    => $rataPerUnsur,
-            'ikmTotal'        => $ikmUnit,
-            'mutuTotal'       => $kategori,
-            'totalResponden'  => $totalResponden,
-            'respondenData'   => $respondenData,
-            'surveys'         => $surveys,
-            'periodeAwal'     => $awal,
-            'periodeAkhir'    => $akhir,
+            'rataPerUnsur'               => $rataPerUnsur,
+            'jumlahPerUnsur'             => $jumlahPerUnsur,
+            'rata2PerUnsur'              => $rata2PerUnsur,
+            'rataTertimbangPerUnsur'     => $rataTertimbangPerUnsur,
+            'totalWeighted'              => $totalWeighted,
+            'ikmTotal'                   => $ikmUnit,
+            'mutuTotal'                  => $kategori,
+            'totalResponden'             => $totalResponden,
+            'respondenData'              => $respondenData,
+            'surveys'                    => $surveys,
+            'periodeAwal'                => $awal,
+            'periodeAkhir'               => $akhir,
         ]);
     }
 
-public function resetPeriode()
-{
-    return redirect()->route('admin.statistik.survey')
-        ->with([
-            'periodeAwal' => null,
-            'periodeAkhir' => null,
-        ]);
-}
+    public function resetPeriode()
+    {
+        return redirect()->route('admin.statistik.survey')
+            ->with([
+                'periodeAwal' => null,
+                'periodeAkhir' => null,
+            ]);
+    }
 
-public function downloadExcel(Request $request)
-{
-    $awal  = $request->awal ?: Survey::min('tanggal');
-    $akhir = $request->akhir ?: Survey::max('tanggal');
+    public function downloadExcel(Request $request)
+    {
+        $awal  = $request->awal ?: Survey::min('tanggal');
+        $akhir = $request->akhir ?: Survey::max('tanggal');
 
-    return Excel::download(
-        new SurveyRespondenExport($awal, $akhir),
-        "IKM_Survey_{$awal}_{$akhir}.xlsx"
-    );
-}
+        return Excel::download(
+            new SurveyRespondenExport($awal, $akhir),
+            "IKM_Survey_{$awal}_{$akhir}.xlsx"
+        );
+    }
 }

@@ -31,12 +31,25 @@ class AuthController extends Controller
             return back()->withErrors(['password' => 'Password salah'])->withInput();
         }
 
-        // Gunakan Auth bawaan Laravel
+        // Login user dan regenerate session
         Auth::login($user);
-
-        // regenerate session
         $request->session()->regenerate();
 
+        // Redirect berdasarkan role (aturan yang kita sepakati)
+        // - superadmin, admin, operator -> default ke Statistik (karena mereka bisa melihat statistik)
+        // - operator_bidang -> langsung ke Layanan Publik (hanya akses layanan bidangnya)
+        // - user / fallback -> dashboard
+        $role = $user->role;
+
+        if (in_array($role, ['superadmin', 'admin', 'operator'])) {
+            return redirect()->route('admin.statistik');
+        }
+
+        if ($role === 'operator_bidang') {
+            return redirect()->route('admin.layanan.index');
+        }
+
+        // fallback aman
         return redirect()->route('admin.dashboard');
     }
 

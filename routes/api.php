@@ -50,4 +50,12 @@ Route::get('/antrian/selesai-hari-ini', [AntrianController::class, 'selesaiHariI
 Route::post('/layanan', [LayananPublikController::class, 'store']);
 Route::get('/layanan/generate-no-registrasi', [LayananPublikController::class, 'generateNomorRegistrasi']);
 
+// ===============================
+// 🔍 CEK STATUS PENGAJUAN
+// ===============================
+use App\Http\Controllers\StatusLayananController;
+
+Route::get('/cek-status', [StatusLayananController::class, 'cekStatus']);
+
+
 

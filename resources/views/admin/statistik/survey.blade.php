@@ -276,85 +276,45 @@ document.addEventListener("DOMContentLoaded", function() {
 
             {{-- Footer --}}
             <table class="table table-bordered table-striped text-center mb-0" style="table-layout: fixed; width: 100%;">
-                <tfoot>
+<tfoot>
 
-                    <tr class="table-secondary fw-bold">
-                        <td>Jumlah Nilai / Unsur</td>
-                        @foreach($rataPerUnsur as $pertanyaan => $_)
-                            @php
-                                $sum = 0;
-                                foreach($respondenData as $responden){
-                                    $sum += $responden[$pertanyaan] ?? 0;
-                                }
-                            @endphp
-                            <td>{{ $sum }}</td>
-                        @endforeach
-                    </tr>
+    <tr class="table-secondary fw-bold">
+        <td>Jumlah Nilai / Unsur</td>
+        @foreach($jumlahPerUnsur as $val)
+            <td>{{ $val }}</td>
+        @endforeach
+    </tr>
 
-                    <tr class="table-info fw-bold">
-                        <td>Rata-Rata / Unsur</td>
-                        @foreach($rataPerUnsur as $pertanyaan => $_)
-                            @php
-                                $sum = 0;
-                                foreach($respondenData as $responden){
-                                    $sum += $responden[$pertanyaan] ?? 0;
-                                }
-                                $avg = $totalResponden > 0 ? $sum / $totalResponden : 0;
-                            @endphp
-                            <td>{{ number_format($avg, 2) }}</td>
-                        @endforeach
-                    </tr>
+    <tr class="table-info fw-bold">
+        <td>Rata-Rata / Unsur</td>
+        @foreach($rata2PerUnsur as $val)
+            <td>{{ number_format($val, 2) }}</td>
+        @endforeach
+    </tr>
 
-                    <tr class="table-warning fw-bold">
-                        <td>Rata-Rata Tertimbang / Unsur</td>
-                        @foreach($rataPerUnsur as $pertanyaan => $_)
-                            @php
-                                $sum = 0;
-                                foreach($respondenData as $responden){
-                                    $sum += $responden[$pertanyaan] ?? 0;
-                                }
-                                $avg = $totalResponden > 0 ? $sum / $totalResponden : 0;
-                                $weighted = $avg * 25;
-                            @endphp
-                            <td>{{ number_format($weighted, 2) }}</td>
-                        @endforeach
-                    </tr>
+    <tr class="table-warning fw-bold">
+        <td>Rata-Rata Tertimbang / Unsur</td>
+        @foreach($rataTertimbangPerUnsur as $val)
+            <td>{{ number_format($val, 2) }}</td>
+        @endforeach
+    </tr>
 
-                    <tr class="table-primary fw-bold">
-                        <td>Jumlah Rata-Rata Tertimbang</td>
-                        @php
-                            $totalWeighted = 0;
-                            foreach($rataPerUnsur as $pertanyaan => $_){
-                                $sum = 0;
-                                foreach($respondenData as $responden){
-                                    $sum += $responden[$pertanyaan] ?? 0;
-                                }
-                                $avg = $totalResponden > 0 ? $sum / $totalResponden : 0;
-                                $weighted = $avg * 25;
-                                $totalWeighted += $weighted;
-                            }
-                        @endphp
-                        <td colspan="{{ count($rataPerUnsur) }}">{{ number_format($totalWeighted, 2) }}</td>
-                    </tr>
+    <tr class="table-primary fw-bold">
+        <td>Jumlah Rata-Rata Tertimbang</td>
+        <td colspan="{{ count($rataTertimbangPerUnsur) }}">
+            {{ number_format($totalWeighted, 2) }}
+        </td>
+    </tr>
 
-                    <tr class="table-success fw-bold">
-                        <td>IKM Unit Pelayanan</td>
-                        @php
-                            $sumAvg = 0;
-                            foreach($rataPerUnsur as $pertanyaan => $_){
-                                $sum = 0;
-                                foreach($respondenData as $responden){
-                                    $sum += $responden[$pertanyaan] ?? 0;
-                                }
-                                $avg = $totalResponden > 0 ? $sum / $totalResponden : 0;
-                                $sumAvg += $avg;
-                            }
-                            $ikmUnit = count($rataPerUnsur) > 0 ? ($sumAvg / count($rataPerUnsur)) * 25 : 0;
-                        @endphp
-                        <td colspan="{{ count($rataPerUnsur) }}">{{ number_format($ikmUnit, 2) }}</td>
-                    </tr>
+    <tr class="table-success fw-bold">
+        <td>IKM Unit Pelayanan</td>
+        <td colspan="{{ count($rataPerUnsur) }}">
+            {{ number_format($ikmTotal, 2) }}
+        </td>
+    </tr>
 
-                </tfoot>
+</tfoot>
+
             </table>
         </div>
 

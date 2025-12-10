@@ -24,7 +24,7 @@ return [
         'Bagian Tata Usaha' => [
             'Permohonan Audiensi' => 1,
             'Penerbitan Surat Izin Magang' => 2,
-            'Penerbitin Surat Izin Penelitian' => 3,
+            'Penerbitan Surat Izin Penelitian' => 3,
             'Permohonan Data dan Informasi Keagamaan' => 4,
             'Permohonan Rohaniwan' => 5,
             'Penerbitan Rekomendasi Kegiatan Keagamaan' => 6,
