@@ -57,5 +57,11 @@ use App\Http\Controllers\StatusLayananController;
 
 Route::get('/cek-status', [StatusLayananController::class, 'cekStatus']);
 
+// ===============================
+// ✅ FILE STANDAR PELAYANAN
+// ===============================
+use App\Http\Controllers\StandarPelayananController;
+
+Route::get('/standar-pelayanan', [StandarPelayananController::class, 'getFile']);
 
 
