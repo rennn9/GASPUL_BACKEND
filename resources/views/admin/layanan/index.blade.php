@@ -169,10 +169,49 @@
                                     </div>
                                 </div>
 
-<!-- Tombol Kirim untuk Diverifikasi (Operator) -->
+<!-- Download Bukti Terima Section -->
 @php
     $user = auth()->user();
     $role = $user->role;
+
+    // Cek apakah sudah pernah ada status "Menunggu Verifikasi Bidang"
+    $hasVerifikasiStatus = $item->statusHistory->contains(function($st) {
+        return strtolower(trim($st->status)) === 'menunggu verifikasi bidang';
+    });
+
+    // Tombol download muncul jika:
+    // 1. User role: superadmin, admin, atau operator
+    // 2. Status sudah pernah "Menunggu Verifikasi Bidang" (atau status apapun setelahnya)
+    $showDownloadButton = (
+        in_array($role, ['superadmin', 'admin', 'operator']) &&
+        $hasVerifikasiStatus
+    );
+@endphp
+
+@if($showDownloadButton)
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card border-info">
+            <div class="card-body">
+                <h6 class="card-title text-info mb-3">
+                    <i class="bi bi-file-earmark-word me-2"></i>
+                    Dokumen Bukti Terima Berkas
+                </h6>
+                <p class="card-text text-muted mb-3">
+                    Download bukti terima berkas permohonan PTSP dalam format DOCX.
+                </p>
+                <a href="{{ route('admin.layanan.downloadBuktiTerima', $item->id) }}"
+                   class="btn btn-info">
+                    <i class="bi bi-download me-2"></i>Download Bukti Terima Berkas
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- Tombol Kirim untuk Diverifikasi (Operator) -->
+@php
     $statusLower = strtolower($statusText);
 
     // Tombol kirim hanya muncul jika:

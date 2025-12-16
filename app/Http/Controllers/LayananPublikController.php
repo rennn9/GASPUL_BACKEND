@@ -544,6 +544,8 @@ if ($reqNormalized === 'perbaikan selesai') {
             'keterangan' => "Dikirim untuk diverifikasi oleh {$user->name}",
             'file_surat' => null,
             'file_perbaikan' => null,
+            'operator_nama' => $user->name,
+            'operator_no_hp' => $user->no_hp,
         ]);
 
         Log::info("Status baru berhasil dibuat", [
@@ -555,6 +557,84 @@ if ($reqNormalized === 'perbaikan selesai') {
         Log::info("===== KIRIM VERIFIKASI END =====");
 
         return back()->with('success', 'Entri berhasil dikirim untuk diverifikasi oleh bidang.');
+    }
+
+    // =========================================================
+    // DOWNLOAD BUKTI TERIMA BERKAS PERMOHONAN PTSP (DOCX)
+    // =========================================================
+    public function downloadBuktiTerima($id)
+    {
+        try {
+            $user = auth()->user();
+
+            Log::info("===== DOWNLOAD BUKTI TERIMA START =====", [
+                'layanan_id' => $id,
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'role' => $user->role
+            ]);
+
+            // 1. Validasi role: hanya superadmin, admin, operator
+            if (!in_array($user->role, ['superadmin', 'admin', 'operator'])) {
+                Log::warning("Akses ditolak: role tidak diizinkan", [
+                    'role' => $user->role
+                ]);
+                return back()->with('error', 'Anda tidak memiliki akses untuk download dokumen ini.');
+            }
+
+            // 2. Ambil data layanan dengan relasi
+            $layanan = LayananPublik::with(['statusHistory' => function($query) {
+                $query->with('user');
+            }])->findOrFail($id);
+
+            Log::info("Data layanan ditemukan", [
+                'no_registrasi' => $layanan->no_registrasi,
+                'nama' => $layanan->nama
+            ]);
+
+            // 3. Validasi: cek apakah sudah pernah ada status "Menunggu Verifikasi Bidang"
+            $hasVerifikasiStatus = $layanan->statusHistory->contains(function($st) {
+                return strtolower(trim($st->status)) === 'menunggu verifikasi bidang';
+            });
+
+            if (!$hasVerifikasiStatus) {
+                Log::warning("Status 'Menunggu Verifikasi Bidang' belum ada", [
+                    'layanan_id' => $id
+                ]);
+                return back()->with('error', 'Dokumen bukti terima hanya tersedia setelah pengajuan dikirim untuk diverifikasi.');
+            }
+
+            // 4. Generate dokumen menggunakan DocumentService
+            Log::info("Memanggil DocumentService untuk generate dokumen");
+
+            $result = \App\Services\DocumentService::generateBuktiTerima($layanan);
+
+            Log::info("Dokumen berhasil digenerate", [
+                'file_name' => $result['file_name'],
+                'file_path' => $result['file_path']
+            ]);
+
+            // 5. Return download response
+            Log::info("===== DOWNLOAD BUKTI TERIMA END (SUCCESS) =====");
+
+            return response()->download(
+                $result['file_path'],
+                $result['file_name'],
+                [
+                    'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                ]
+            )->deleteFileAfterSend(true); // Auto cleanup setelah download
+
+        } catch (\Throwable $e) {
+            Log::error("===== DOWNLOAD BUKTI TERIMA FAILED =====", [
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->with('error', 'Gagal menggenerate dokumen bukti terima. Silakan coba lagi atau hubungi administrator.');
+        }
     }
 
 

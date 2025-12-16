@@ -14,7 +14,9 @@ class StatusLayanan extends Model
         'status',
         'keterangan',
         'file_surat',
-        'file_perbaikan', 
+        'file_perbaikan',
+        'operator_nama',
+        'operator_no_hp',
     ];
 
     protected $casts = [
