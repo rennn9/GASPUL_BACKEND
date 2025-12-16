@@ -12,6 +12,7 @@ class Survey extends Model
     protected $fillable = [
         'antrian_id',
         'nomor_antrian',
+        'layanan_publik_id',
         'nama_responden',
         'no_hp_wa',
         'usia',
@@ -22,16 +23,23 @@ class Survey extends Model
         'tanggal',
         'jawaban',
         'saran',
+        'surveyed_at',
     ];
 
     protected $casts = [
         'jawaban' => 'array',
         'tanggal' => 'date',
+        'surveyed_at' => 'datetime',
     ];
 
     public function antrian()
     {
         return $this->belongsTo(Antrian::class, 'antrian_id');
+    }
+
+    public function layananPublik()
+    {
+        return $this->belongsTo(LayananPublik::class, 'layanan_publik_id');
     }
 
 }

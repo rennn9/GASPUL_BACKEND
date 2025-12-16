@@ -12,6 +12,21 @@
         </div>
     @endif
 
+    {{-- Filter Status --}}
+    <div class="mb-3 d-flex align-items-center">
+        <label for="statusFilter" class="me-2 fw-bold">Filter Status:</label>
+        <select id="statusFilter" class="form-select" style="width: auto;">
+            <option value="all" {{ !request('status') ? 'selected' : '' }}>Semua</option>
+            <option value="sedang diproses" {{ request('status') == 'sedang diproses' ? 'selected' : '' }}>Sedang Diproses</option>
+            <option value="menunggu verifikasi bidang" {{ request('status') == 'menunggu verifikasi bidang' ? 'selected' : '' }}>Menunggu Verifikasi Bidang</option>
+            <option value="diterima" {{ request('status') == 'diterima' ? 'selected' : '' }}>Diterima</option>
+            <option value="perlu perbaikan" {{ request('status') == 'perlu perbaikan' ? 'selected' : '' }}>Perlu Perbaikan</option>
+            <option value="perbaikan selesai" {{ request('status') == 'perbaikan selesai' ? 'selected' : '' }}>Perbaikan Selesai</option>
+            <option value="ditolak" {{ request('status') == 'ditolak' ? 'selected' : '' }}>Ditolak</option>
+            <option value="selesai" {{ request('status') == 'selesai' ? 'selected' : '' }}>Selesai</option>
+        </select>
+    </div>
+
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -34,6 +49,7 @@
                             $statusLower = strtolower($statusText);
                             $badgeClass = match($statusText) {
                                 'Sedang Diproses' => 'bg-secondary',
+                                'Menunggu Verifikasi Bidang' => 'bg-warning text-dark',
                                 'Diterima' => 'bg-primary',
                                 'Ditolak' => 'bg-danger',
                                 'Perlu Perbaikan' => 'bg-warning text-dark',
@@ -153,27 +169,75 @@
                                     </div>
                                 </div>
 
-<!-- Form Tambah Status -->
+<!-- Tombol Kirim untuk Diverifikasi (Operator) -->
 @php
     $user = auth()->user();
     $role = $user->role;
+    $statusLower = strtolower($statusText);
+
+    // Tombol kirim hanya muncul jika:
+    // 1. User adalah operator
+    // 2. Status terakhir adalah "sedang diproses"
+    // 3. Belum pernah dikirim (cek apakah ada status "menunggu verifikasi bidang")
+    $sudahDikirim = $item->statusHistory->contains(function($st) {
+        return strtolower(trim($st->status)) === 'menunggu verifikasi bidang';
+    });
+
+    $showKirimButton = (
+        $role === 'operator' &&
+        $statusLower === 'sedang diproses' &&
+        !$sudahDikirim
+    );
+@endphp
+
+@if($showKirimButton)
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Entri ini perlu dikirim untuk diverifikasi oleh bidang.</strong>
+        </div>
+
+        <form action="{{ route('admin.layanan.kirimVerifikasi', $item->id) }}" method="POST">
+            @csrf
+            <button type="submit" class="btn btn-primary"
+                    onclick="return confirm('Apakah Anda yakin ingin mengirim entri ini untuk diverifikasi?')">
+                <i class="bi bi-send me-2"></i>Kirim untuk Diverifikasi
+            </button>
+        </form>
+    </div>
+</div>
+@endif
+
+<!-- Form Tambah Status -->
+@php
     $statusLower = strtolower($statusText);
 
     $hideStatusForm = false;
 
     // === ATURAN BARU ===
 
+    // 0. Hanya operator dan operator_bidang yang boleh memberi status
+    if (!in_array($role, ['operator', 'operator_bidang'])) {
+        $hideStatusForm = true;
+    }
+
     // 1. operator tidak boleh memberi status jika masih "sedang diproses"
     if ($statusLower == 'sedang diproses' && $role == 'operator') {
         $hideStatusForm = true;
     }
 
-    // 2. operator_bidang tidak boleh memberi status jika status terakhir "perlu perbaikan"
-    if ($statusLower == 'perlu perbaikan' && $role == 'operator_bidang') {
+    // 1b. operator tidak boleh memberi status jika masih "menunggu verifikasi bidang"
+    if ($statusLower == 'menunggu verifikasi bidang' && $role == 'operator') {
         $hideStatusForm = true;
     }
 
-    // 3. status selesai/diproses tidak bisa diubah siapapun
+    // 2. operator_bidang tidak boleh memberi status jika BUKAN "menunggu verifikasi bidang"
+    if ($statusLower !== 'menunggu verifikasi bidang' && $role == 'operator_bidang') {
+        $hideStatusForm = true;
+    }
+
+    // 3. status selesai/ditolak tidak bisa diubah siapapun
     if (in_array($statusLower, ['selesai', 'ditolak'])) {
         $hideStatusForm = true;
     }
@@ -212,7 +276,9 @@
 
     <div class="mb-3" id="uploadSuratBox" style="display:none;">
         <label class="form-label fw-bold">Upload Surat Balasan</label>
-        <input type="file" name="file_surat[]" class="form-control" multiple>
+        <input type="file" name="file_surat[]" id="fileSuratInput{{ $item->id }}" class="form-control" accept="application/pdf" multiple>
+        <small class="text-muted">Format PDF, maksimal 5 MB per file.</small>
+        <div id="fileSuratError{{ $item->id }}" class="alert alert-danger mt-2" style="display:none;" role="alert"></div>
     </div>
 
     <div class="mb-3" id="uploadPerbaikanBox" style="display:none;">
@@ -232,16 +298,91 @@ document.addEventListener("DOMContentLoaded", () => {
         const suratBox = modal.querySelector("#uploadSuratBox");
         const perbaikanBox = modal.querySelector("#uploadPerbaikanBox");
 
+        // Get file input and error div
+        const fileSuratInput = modal.querySelector("#fileSuratInput{{ $item->id }}");
+        const fileSuratError = modal.querySelector("#fileSuratError{{ $item->id }}");
+        const form = modal.querySelector("form");
+
         radios.forEach(r => {
             r.addEventListener("change", () => {
                 const val = r.value.toLowerCase();
                 ketBox.style.display = (val === "ditolak" || val === "perlu perbaikan") ? "block" : "none";
                 suratBox.style.display = (val === "diterima") ? "block" : "none";
                 perbaikanBox.style.display = (val === "perbaikan selesai") ? "block" : "none";
+
+                // Clear file input and errors when hiding
+                if (val !== "diterima") {
+                    if (fileSuratInput) {
+                        fileSuratInput.value = '';
+                        fileSuratError.style.display = 'none';
+                    }
+                }
             });
         });
+
+        // File validation on change
+        if (fileSuratInput) {
+            fileSuratInput.addEventListener("change", function() {
+                validateFileSurat(this, fileSuratError);
+            });
+        }
+
+        // Form submission validation
+        if (form) {
+            form.addEventListener("submit", function(e) {
+                const statusVal = modal.querySelector("input[name='status']:checked")?.value.toLowerCase();
+
+                if (statusVal === "diterima" && fileSuratInput && fileSuratInput.files.length > 0) {
+                    if (!validateFileSurat(fileSuratInput, fileSuratError)) {
+                        e.preventDefault();
+                        fileSuratError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        return false;
+                    }
+                }
+            });
+        }
     });
 });
+
+// Validation function for file surat
+function validateFileSurat(input, errorDiv) {
+    const files = input.files;
+    const maxSize = 5 * 1024 * 1024; // 5 MB in bytes
+    const allowedType = 'application/pdf';
+    let errors = [];
+
+    if (files.length === 0) {
+        return true; // No files selected, allow (not required)
+    }
+
+    // Validate each file
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        // Check file type
+        if (file.type !== allowedType && !file.name.toLowerCase().endsWith('.pdf')) {
+            errors.push(`File "${file.name}" bukan format PDF. Hanya file PDF yang diperbolehkan.`);
+        }
+
+        // Check file size
+        if (file.size > maxSize) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            errors.push(`File "${file.name}" terlalu besar (${sizeMB} MB). Maksimal 5 MB per file.`);
+        }
+    }
+
+    // Display errors or clear
+    if (errors.length > 0) {
+        errorDiv.innerHTML = '<strong>Kesalahan:</strong><ul class="mb-0">' +
+            errors.map(err => `<li>${err}</li>`).join('') +
+            '</ul>';
+        errorDiv.style.display = 'block';
+        return false;
+    } else {
+        errorDiv.style.display = 'none';
+        return true;
+    }
+}
 </script>
 
     </div>
@@ -278,4 +419,30 @@ document.addEventListener("DOMContentLoaded", () => {
 <style>
 .cursor-pointer { cursor: pointer; }
 </style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Filter status dropdown
+    const statusFilter = document.getElementById('statusFilter');
+
+    if (statusFilter) {
+        statusFilter.onchange = function() {
+            const filter = this.value;
+            const url = new URL(window.location.href);
+
+            if (filter === 'all') {
+                url.searchParams.delete('status');
+            } else {
+                url.searchParams.set('status', filter);
+            }
+
+            // Reset to page 1 when filtering
+            url.searchParams.delete('page');
+
+            window.location.href = url.toString();
+        }
+    }
+});
+</script>
+
 @endsection

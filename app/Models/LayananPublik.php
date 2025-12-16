@@ -37,4 +37,20 @@ class LayananPublik extends Model
         return $this->hasOne(StatusLayanan::class, 'layanan_id')
                     ->latest('created_at');
     }
+
+    /**
+     * Relasi ke survey (one-to-one)
+     */
+    public function survey()
+    {
+        return $this->hasOne(Survey::class, 'layanan_publik_id');
+    }
+
+    /**
+     * Check if this layanan has completed survey
+     */
+    public function hasSurvey(): bool
+    {
+        return $this->survey()->exists();
+    }
 }

@@ -18,6 +18,11 @@
     </div>
 
     <div class="mb-3">
+        <label for="no_hp" class="form-label">No. HP</label>
+        <input type="text" class="form-control" id="no_hp" name="no_hp" value="{{ old('no_hp', $user->no_hp) }}" placeholder="Contoh: 08123456789">
+    </div>
+
+    <div class="mb-3">
         <label for="password" class="form-label">Password (kosongkan jika tidak ingin diubah)</label>
         <input type="password" class="form-control" id="password" name="password">
     </div>

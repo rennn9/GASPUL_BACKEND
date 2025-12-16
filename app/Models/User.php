@@ -12,6 +12,7 @@ class User extends Authenticatable
     protected $fillable = [
         'nip',
         'name',
+        'no_hp',
         'password',
         'role',
         'bidang', // kolom baru

@@ -43,6 +43,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'nip' => 'required|string|unique:users,nip',
             'name' => 'required|string|max:255',
+            'no_hp' => 'nullable|string|max:20',
             'password' => 'required|string|min:6|confirmed',
             'role' => 'required|in:superadmin,admin,operator,operator_bidang,user',
             'bidang' => 'nullable|string|in:Bagian Tata Usaha,Bidang Bimbingan Masyarakat Islam,Bidang Pendidikan Madrasah,Bimas Kristen,Bimas Katolik,Bimas Hindu,Bimas Buddha',
@@ -51,6 +52,7 @@ class UserController extends Controller
         User::create([
             'nip' => $validated['nip'],
             'name' => $validated['name'],
+            'no_hp' => $validated['no_hp'] ?? null,
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
             'bidang' => $validated['role'] === 'operator_bidang' ? $validated['bidang'] : null,
@@ -71,6 +73,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'nip' => 'required|string|unique:users,nip,' . $user->id,
             'name' => 'required|string|max:255',
+            'no_hp' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:6|confirmed',
             'role' => 'required|in:superadmin,admin,operator,operator_bidang,user',
             'bidang' => 'nullable|string|in:Bagian Tata Usaha,Bidang Bimbingan Masyarakat Islam,Bidang Pendidikan Madrasah,Bimas Kristen,Bimas Katolik,Bimas Hindu,Bimas Buddha',
@@ -78,6 +81,7 @@ class UserController extends Controller
 
         $user->nip = $validated['nip'];
         $user->name = $validated['name'];
+        $user->no_hp = $validated['no_hp'] ?? null;
         $user->role = $validated['role'];
         $user->bidang = $validated['role'] === 'operator_bidang' ? $validated['bidang'] : null;
         if(!empty($validated['password'])){

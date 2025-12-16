@@ -20,13 +20,14 @@ class LayananPublikController extends Controller
         if (!$status) return '';
 
         return match (strtolower(trim($status))) {
-            'sedang diproses'     => 'sedang diproses',
-            'diterima'            => 'diterima',
-            'ditolak'             => 'ditolak',
-            'perlu perbaikan'     => 'perlu perbaikan',
-            'selesai'             => 'selesai',
-            'perbaikan selesai'   => 'perbaikan selesai',
-            default               => strtolower(trim($status)),
+            'sedang diproses'           => 'sedang diproses',
+            'menunggu verifikasi bidang' => 'menunggu verifikasi bidang',
+            'diterima'                  => 'diterima',
+            'ditolak'                   => 'ditolak',
+            'perlu perbaikan'           => 'perlu perbaikan',
+            'selesai'                   => 'selesai',
+            'perbaikan selesai'         => 'perbaikan selesai',
+            default                     => strtolower(trim($status)),
         };
     }
 
@@ -164,7 +165,7 @@ public function generateNomorRegistrasi(Request $request)
     // =========================================================
     // ADMIN VIEW LIST
     // =========================================================
-public function index()
+public function index(Request $request)
 {
     $user = auth()->user();
 
@@ -173,6 +174,20 @@ public function index()
     // Jika operator bidang, filter berdasarkan bidang miliknya
     if ($user->role === 'operator_bidang' && $user->bidang) {
         $query->where('bidang', $user->bidang);
+    }
+
+    // Filter berdasarkan status
+    if ($request->has('status') && $request->status != '') {
+        $filterStatus = strtolower(trim($request->status));
+
+        $query->whereHas('statusHistory', function($q) use ($filterStatus) {
+            $q->whereRaw('LOWER(status) = ?', [$filterStatus])
+              ->whereIn('id', function($subQuery) {
+                  $subQuery->selectRaw('MAX(id)')
+                           ->from('status_layanan')
+                           ->groupBy('layanan_id');
+              });
+        });
     }
 
     $data = $query->paginate(20);
@@ -256,6 +271,14 @@ public function addStatus(Request $request, $id)
             'requested_status' => $reqNormalized
         ]);
 
+        // Tidak boleh memberi status jika belum "Menunggu Verifikasi Bidang"
+        if ($lastNormalized !== 'menunggu verifikasi bidang') {
+            Log::warning("OperatorBidangBlocked_BelumDikirim", [
+                'last' => $lastNormalized
+            ]);
+            return back()->with('error', 'Entri harus dikirim untuk diverifikasi oleh operator terlebih dahulu.');
+        }
+
         // Hanya status final yang tidak bisa diubah
         $finalStatus = ['selesai', 'ditolak'];
 
@@ -265,7 +288,6 @@ public function addStatus(Request $request, $id)
             ]);
             return back()->with('error', 'Status sudah final dan tidak dapat diubah lagi.');
         }
-
 
         $allowed = ['diterima', 'ditolak', 'perlu perbaikan'];
         if (!in_array($reqNormalized, $allowed)) {
@@ -289,6 +311,22 @@ public function addStatus(Request $request, $id)
             'last_status' => $lastNormalized,
             'requested_status' => $reqNormalized
         ]);
+
+        // Operator tidak boleh memberi status jika masih "sedang diproses"
+        if ($lastNormalized === 'sedang diproses') {
+            Log::warning("OperatorBlocked_MasihSedangDiproses", [
+                'last' => $lastNormalized
+            ]);
+            return back()->with('error', 'Silakan kirim untuk diverifikasi terlebih dahulu.');
+        }
+
+        // Operator tidak boleh memberi status jika masih "menunggu verifikasi bidang"
+        if ($lastNormalized === 'menunggu verifikasi bidang') {
+            Log::warning("OperatorBlocked_MenungguVerifikasiBidang", [
+                'last' => $lastNormalized
+            ]);
+            return back()->with('error', 'Entri sedang menunggu verifikasi dari bidang.');
+        }
 
         $allowedOp = ['selesai', 'perbaikan selesai'];
         if (!in_array($reqNormalized, $allowedOp)) {
@@ -400,7 +438,7 @@ if ($reqNormalized === 'perbaikan selesai') {
     $validated = $request->validate([
         'status'        => 'required|string',
         'keterangan'    => 'nullable|string',
-        'file_surat.*'  => 'file|max:5000'
+        'file_surat.*'  => 'file|mimes:pdf|max:5000'
     ]);
     Log::info("ValidationSuccess");
 
@@ -445,6 +483,80 @@ if ($reqNormalized === 'perbaikan selesai') {
 
     return back()->with('success', 'Status berhasil ditambahkan.');
 }
+
+
+    // =========================================================
+    // KIRIM ENTRI UNTUK DIVERIFIKASI (OPERATOR)
+    // =========================================================
+    public function kirimVerifikasi($id)
+    {
+        $layanan = LayananPublik::findOrFail($id);
+        $user = auth()->user();
+
+        Log::info("===== KIRIM VERIFIKASI START =====", [
+            'layanan_id' => $layanan->id,
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'role' => $user->role
+        ]);
+
+        // Validasi role
+        if ($user->role !== 'operator') {
+            Log::warning("Akses ditolak: bukan operator", ['role' => $user->role]);
+            return back()->with('error', 'Hanya operator yang dapat mengirim untuk diverifikasi.');
+        }
+
+        // Ambil status terakhir
+        $lastStatus = StatusLayanan::where('layanan_id', $layanan->id)
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        $lastNormalized = strtolower(trim($lastStatus->status));
+
+        Log::info("Status terakhir", [
+            'status_id' => $lastStatus->id,
+            'status' => $lastNormalized
+        ]);
+
+        // Validasi: hanya bisa kirim jika status "sedang diproses"
+        if ($lastNormalized !== 'sedang diproses') {
+            Log::warning("Status tidak valid untuk pengiriman", [
+                'current_status' => $lastNormalized
+            ]);
+            return back()->with('error', 'Hanya entri dengan status "Sedang Diproses" yang bisa dikirim untuk diverifikasi.');
+        }
+
+        // Cek apakah sudah pernah dikirim (ada status "menunggu verifikasi bidang")
+        $sudahDikirim = StatusLayanan::where('layanan_id', $layanan->id)
+            ->whereRaw('LOWER(status) = ?', ['menunggu verifikasi bidang'])
+            ->exists();
+
+        if ($sudahDikirim) {
+            Log::warning("Entri sudah pernah dikirim", ['layanan_id' => $layanan->id]);
+            return back()->with('error', 'Entri ini sudah dikirim untuk diverifikasi.');
+        }
+
+        // Buat record status baru
+        $newStatus = StatusLayanan::create([
+            'layanan_id' => $layanan->id,
+            'user_id' => $user->id,
+            'status' => 'Menunggu Verifikasi Bidang',
+            'keterangan' => "Dikirim untuk diverifikasi oleh {$user->name}",
+            'file_surat' => null,
+            'file_perbaikan' => null,
+        ]);
+
+        Log::info("Status baru berhasil dibuat", [
+            'new_status_id' => $newStatus->id,
+            'status' => $newStatus->status,
+            'operator_name' => $user->name
+        ]);
+
+        Log::info("===== KIRIM VERIFIKASI END =====");
+
+        return back()->with('success', 'Entri berhasil dikirim untuk diverifikasi oleh bidang.');
+    }
+
 
     // =========================================================
     // ADMIN DOWNLOAD FILE

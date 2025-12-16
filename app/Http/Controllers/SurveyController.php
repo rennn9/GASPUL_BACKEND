@@ -44,19 +44,47 @@ public function store(Request $request)
     $validated = $request->validate([
         'antrian_id'       => 'nullable|integer|exists:antrian,id',
         'nomor_antrian'    => 'nullable|string|max:10',
+        'layanan_publik_id' => 'nullable|integer|exists:layanan_publik,id',
         'nama_responden'   => 'required|string|max:255',
         'no_hp_wa'         => 'nullable|string|max:20',
-        'usia'             => 'nullable|integer',
-        'jenis_kelamin'    => 'nullable|string|max:20',
-        'pendidikan'       => 'nullable|string|max:100',
-        'pekerjaan'        => 'nullable|string|max:100',
+        'usia'             => 'required|integer|min:1|max:120',
+        'jenis_kelamin'    => 'required|in:Laki-laki,Perempuan',
+        'pendidikan'       => 'required|string|max:100',
+        'pekerjaan'        => 'required|string|max:100',
         'bidang'           => 'nullable|string|max:150',
         'tanggal'          => 'nullable|date',
-        'jawaban'          => 'nullable|array',
+        'jawaban'          => 'required|array',
+        'jawaban.*.jawaban' => 'required|string',
+        'jawaban.*.nilai'   => 'required|integer|min:0|max:4',
         'saran'            => 'nullable|string',
     ]);
 
-    // ✅ Jika nomor_antrian dikirim tapi antrian_id tidak, cari antrian_id berdasarkan nomor_antrian
+    // ✅ NEW: Check for duplicate survey for layanan_publik
+    if (!empty($validated['layanan_publik_id'])) {
+        $existingSurvey = Survey::where('layanan_publik_id', $validated['layanan_publik_id'])->first();
+
+        if ($existingSurvey) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Survey untuk layanan ini sudah pernah diisi.',
+                'data' => $existingSurvey,
+            ], 422);
+        }
+    }
+
+    // ✅ NEW: Auto-populate from LayananPublik if layanan_publik_id is provided
+    if (!empty($validated['layanan_publik_id'])) {
+        $layanan = \App\Models\LayananPublik::find($validated['layanan_publik_id']);
+
+        if ($layanan) {
+            // Auto-fill fields from layanan data
+            $validated['nama_responden'] = $validated['nama_responden'] ?? $layanan->nama;
+            $validated['bidang'] = $validated['bidang'] ?? $layanan->bidang;
+            $validated['no_hp_wa'] = $validated['no_hp_wa'] ?? $layanan->telepon;
+        }
+    }
+
+    // ✅ EXISTING LOGIC: Auto-lookup antrian_id from nomor_antrian
     $antrianId = $validated['antrian_id'] ?? null;
 
     if (!$antrianId && !empty($validated['nomor_antrian'])) {
@@ -72,16 +100,18 @@ public function store(Request $request)
     $survey = Survey::create([
         'antrian_id'       => $antrianId,
         'nomor_antrian'    => $validated['nomor_antrian'] ?? null,
+        'layanan_publik_id' => $validated['layanan_publik_id'] ?? null,
         'nama_responden'   => $validated['nama_responden'],
         'no_hp_wa'         => $validated['no_hp_wa'] ?? null,
-        'usia'             => $validated['usia'] ?? null,
-        'jenis_kelamin'    => $validated['jenis_kelamin'] ?? null,
-        'pendidikan'       => $validated['pendidikan'] ?? null,
-        'pekerjaan'        => $validated['pekerjaan'] ?? null,
+        'usia'             => $validated['usia'],
+        'jenis_kelamin'    => $validated['jenis_kelamin'],
+        'pendidikan'       => $validated['pendidikan'],
+        'pekerjaan'        => $validated['pekerjaan'],
         'bidang'           => $validated['bidang'] ?? null,
         'tanggal'          => $validated['tanggal'] ?? now(),
-        'jawaban'          => isset($validated['jawaban']) ? json_encode($validated['jawaban']) : null,
+        'jawaban'          => $validated['jawaban'],
         'saran'            => $validated['saran'] ?? null,
+        'surveyed_at'      => now(),
     ]);
 
     return response()->json([

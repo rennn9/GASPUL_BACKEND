@@ -92,6 +92,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/layanan-publik/{id}', [LayananPublikController::class, 'show'])->name('layanan.show');
     Route::delete('/layanan-publik/{id}', [LayananPublikController::class, 'destroy'])->name('layanan.destroy');
     Route::post('/layanan-publik/{id}/add-status', [LayananPublikController::class, 'addStatus'])->name('layanan.addStatus');
+    Route::post('/layanan-publik/{id}/kirim-verifikasi', [LayananPublikController::class, 'kirimVerifikasi'])->name('layanan.kirimVerifikasi');
 
     // =============================
     // Standar Pelayanan (Admin)

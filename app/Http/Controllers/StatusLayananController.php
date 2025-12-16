@@ -143,6 +143,32 @@ if (!$lastStatusWithSurat) {
 }
 
 
+        // ==========================================================
+        // 3A. CHECK SURVEY STATUS
+        // ==========================================================
+        \Log::info("[SURVEY CHECK] Checking if survey has been filled...");
+
+        $hasSurvey = false;
+        $surveyId = null;
+
+        // Only check survey if surat_balasan_url exists
+        if ($suratBalasanUrl) {
+            $survey = $layanan->survey;  // Uses the hasOne relationship
+
+            if ($survey) {
+                $hasSurvey = true;
+                $surveyId = $survey->id;
+
+                \Log::info("[SURVEY CHECK] Survey found.", [
+                    'survey_id' => $surveyId,
+                    'surveyed_at' => $survey->surveyed_at
+                ]);
+            } else {
+                \Log::info("[SURVEY CHECK] No survey found. User must fill survey before accessing surat balasan.");
+            }
+        } else {
+            \Log::info("[SURVEY CHECK] No surat balasan yet, survey check skipped.");
+        }
 
         // ==========================================================
         // 4. RESPONSE AKHIR
@@ -150,6 +176,7 @@ if (!$lastStatusWithSurat) {
         \Log::info("[RESPONSE] Mengirim response JSON final...", [
             'berkas_url' => $berkasUrl,
             'surat_balasan_url' => $suratBalasanUrl,
+            'has_filled_survey' => $hasSurvey,
             'success' => true,
             'layanan_id' => $layanan->id
         ]);
@@ -162,6 +189,8 @@ if (!$lastStatusWithSurat) {
                 'status_history' => $layanan->statusHistory,
                 'berkas_url' => $berkasUrl,
                 'surat_balasan_url' => $suratBalasanUrl,
+                'has_filled_survey' => $hasSurvey,
+                'survey_id' => $surveyId,
             ]
         ]);
     }

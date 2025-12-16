@@ -14,6 +14,7 @@
                 <th>No</th>
                 <th>NIP</th>
                 <th>Nama</th>
+                <th>No. HP</th>
                 <th>Role</th>
                 <th>Bidang</th>
                 <th>Aksi</th>
@@ -31,6 +32,7 @@
                 </td>
                 <td>{{ $user->nip }}</td>
                 <td>{{ $user->name }}</td>
+                <td>{{ $user->no_hp ?? '-' }}</td>
                 <td>{{ ucfirst($user->role) }}</td>
                 <td>
                     @if($user->role === 'operator_bidang' && $user->bidang)
@@ -54,7 +56,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="6" class="text-center">Belum ada user.</td>
+                <td colspan="7" class="text-center">Belum ada user.</td>
             </tr>
             @endforelse
         </tbody>

@@ -23,6 +23,14 @@
     </div>
 
     <div class="mb-3">
+        <label for="no_hp" class="form-label">No. HP</label>
+        <input type="text" name="no_hp" id="no_hp" class="form-control" value="{{ old('no_hp') }}" placeholder="Contoh: 08123456789">
+        @error('no_hp')
+            <div class="text-danger">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="mb-3">
         <label for="password" class="form-label">Password</label>
         <input type="password" name="password" id="password" class="form-control" required>
         @error('password')
