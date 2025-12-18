@@ -13,6 +13,8 @@ use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\MonitorSettingController;
 use App\Http\Controllers\LayananPublikController;
 use App\Http\Controllers\StandarPelayananController;
+use App\Http\Controllers\SurveyTemplateController;
+use App\Http\Controllers\SurveyQuestionController;
 
 // ===========================
 // AUTH ROUTES
@@ -103,6 +105,40 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/standar-pelayanan', [StandarPelayananController::class, 'store'])->name('standar-pelayanan.store');
     Route::get('/standar-pelayanan/{id}/edit', [StandarPelayananController::class, 'edit'])->name('standar-pelayanan.edit');
     Route::delete('/standar-pelayanan/{id}', [StandarPelayananController::class, 'destroy'])->name('standar-pelayanan.destroy');
+
+    // =============================
+    // Survey Template Management (Superadmin & Admin Only)
+    // =============================
+    Route::middleware('role:superadmin,admin')->group(function () {
+        // Template CRUD
+        Route::resource('survey-templates', SurveyTemplateController::class)->except(['show']);
+        Route::post('/survey-templates/{surveyTemplate}/activate', [SurveyTemplateController::class, 'activate'])
+             ->name('survey-templates.activate');
+        Route::post('/survey-templates/{surveyTemplate}/duplicate', [SurveyTemplateController::class, 'duplicate'])
+             ->name('survey-templates.duplicate');
+        Route::get('/survey-templates/{surveyTemplate}/preview', [SurveyTemplateController::class, 'preview'])
+             ->name('survey-templates.preview');
+
+        // Question & Option Management
+        Route::get('/survey-questions/{template_id}', [SurveyQuestionController::class, 'index'])
+             ->name('survey-questions.index');
+        Route::post('/survey-questions', [SurveyQuestionController::class, 'store'])
+             ->name('survey-questions.store');
+        Route::put('/survey-questions/{id}', [SurveyQuestionController::class, 'update'])
+             ->name('survey-questions.update');
+        Route::delete('/survey-questions/{id}', [SurveyQuestionController::class, 'destroy'])
+             ->name('survey-questions.destroy');
+        Route::post('/survey-questions/reorder', [SurveyQuestionController::class, 'reorder'])
+             ->name('survey-questions.reorder');
+
+        // Option Management
+        Route::post('/survey-options', [SurveyQuestionController::class, 'storeOption'])
+             ->name('survey-options.store');
+        Route::put('/survey-options/{id}', [SurveyQuestionController::class, 'updateOption'])
+             ->name('survey-options.update');
+        Route::delete('/survey-options/{id}', [SurveyQuestionController::class, 'destroyOption'])
+             ->name('survey-options.destroy');
+    });
 });
 
 // =============================

@@ -5,6 +5,7 @@ use App\Http\Controllers\AntrianController;
 use App\Http\Controllers\StatistikPelayananController;
 use App\Http\Controllers\KonsultasiController;
 use App\Http\Controllers\SurveyController; // ✅ Tambahkan controller survey
+use App\Http\Controllers\Api\SurveyApiController;
 use Carbon\Carbon;
 use App\Http\Controllers\LayananPublikController;
 
@@ -27,6 +28,7 @@ Route::post('/konsultasi/store', [KonsultasiController::class, 'store']);
 // ===============================
 // 🧾 RUTE SURVEY (Baru Ditambahkan)
 // ===============================
+Route::get('/survey/questions', [SurveyApiController::class, 'getQuestions']);
 Route::post('/survey', [SurveyController::class, 'store']);
 
 // ===============================

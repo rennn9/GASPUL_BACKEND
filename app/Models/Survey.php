@@ -10,6 +10,7 @@ class Survey extends Model
     use HasFactory;
 
     protected $fillable = [
+        'survey_template_id',
         'antrian_id',
         'nomor_antrian',
         'layanan_publik_id',
@@ -40,6 +41,22 @@ class Survey extends Model
     public function layananPublik()
     {
         return $this->belongsTo(LayananPublik::class, 'layanan_publik_id');
+    }
+
+    /**
+     * Relasi ke SurveyTemplate (belongs to)
+     */
+    public function template()
+    {
+        return $this->belongsTo(SurveyTemplate::class, 'survey_template_id');
+    }
+
+    /**
+     * Relasi ke SurveyResponse (one to many)
+     */
+    public function responses()
+    {
+        return $this->hasMany(SurveyResponse::class, 'survey_id');
     }
 
 }

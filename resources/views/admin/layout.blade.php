@@ -283,7 +283,7 @@ html, body {
                     </a>
                 </li>
                 <li class="nav-item mb-2">
-                    <a class="nav-link {{ request()->is('admin/survey*') ? 'active' : '' }}" href="{{ route('admin.survey.index') }}">
+                    <a class="nav-link {{ request()->is('admin/survey*') && !request()->is('admin/survey-templates*') && !request()->is('admin/survey-questions*') ? 'active' : '' }}" href="{{ route('admin.survey.index') }}">
                         <i class="bi bi-ui-checks-grid me-2"></i> Survey Kepuasan
                     </a>
                 </li>
@@ -328,6 +328,11 @@ html, body {
                 <li class="nav-item mb-2">
                     <a class="nav-link {{ request()->is('admin/users*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
                         <i class="bi bi-people me-2"></i> User Management
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link {{ request()->is('admin/survey-templates*') ? 'active' : '' }}" href="{{ route('admin.survey-templates.index') }}">
+                        <i class="bi bi-file-earmark-text me-2"></i> Template Survey
                     </a>
                 </li>
             </ul>

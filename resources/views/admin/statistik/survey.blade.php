@@ -19,6 +19,51 @@
     <div class="card shadow-sm mb-4">
         <div class="card-body">
 
+            {{-- DROPDOWN FILTER TEMPLATE --}}
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <form action="{{ route('admin.statistik.survey') }}" method="GET" id="filterTemplateForm">
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="template_id" class="form-label mb-0 fw-bold" style="white-space: nowrap;">
+                                Filter Template:
+                            </label>
+                            <select name="template_id" id="template_id" class="form-select" onchange="this.form.submit()">
+                                @foreach($allTemplates as $template)
+                                    <option value="{{ $template->id }}"
+                                        {{ $selectedTemplateId == $template->id ? 'selected' : '' }}>
+                                        {{ $template->nama }} (v{{ $template->versi }})
+                                        {{ $template->is_active ? '⭐ Aktif' : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+
+                            @if($selectedTemplateId)
+                                <a href="{{ route('admin.statistik.survey') }}" class="btn btn-secondary btn-sm">
+                                    Reset
+                                </a>
+                            @endif
+                        </div>
+
+                        @if(request('awal'))
+                            <input type="hidden" name="awal" value="{{ request('awal') }}">
+                        @endif
+                        @if(request('akhir'))
+                            <input type="hidden" name="akhir" value="{{ request('akhir') }}">
+                        @endif
+                    </form>
+                </div>
+                <div class="col-md-6 text-end">
+                    @if($selectedTemplate)
+                        <div class="alert alert-info mb-0 py-2">
+                            <small>
+                                <strong>Template:</strong> {{ $selectedTemplate->nama }} (Versi {{ $selectedTemplate->versi }})<br>
+                                <strong>Jumlah Unsur:</strong> {{ count($unsurMapping) }}
+                            </small>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             @php
                 $totalResponden = $totalResponden ?? 0;
                 $rataPerUnsur = $rataPerUnsur ?? [];
@@ -83,8 +128,11 @@
 
     <!-- Tombol Download Excel -->
     <form action="{{ route('admin.statistik.survey.downloadExcel') }}" method="GET">
-        <input type="hidden" name="awal" value="{{ $periodeAwal }}">
-        <input type="hidden" name="akhir" value="{{ $periodeAkhir }}">
+        <input type="hidden" name="awal" value="{{ $periodeAwal ? $periodeAwal->format('Y-m-d') : '' }}">
+        <input type="hidden" name="akhir" value="{{ $periodeAkhir ? $periodeAkhir->format('Y-m-d') : '' }}">
+        @if($selectedTemplateId)
+            <input type="hidden" name="template_id" value="{{ $selectedTemplateId }}">
+        @endif
         <button type="submit" class="btn btn-success">
             <i class="bi bi-file-earmark-excel"></i> Download Excel
         </button>
@@ -149,8 +197,8 @@
                         <button class="btn btn-link p-0 m-0 text-decoration-none"
                                 data-bs-toggle="modal"
                                 data-bs-target="#modalFilterPeriode">
-                            {{ $periodeAwal?->translatedFormat('d F Y') }} –
-                            {{ $periodeAkhir?->translatedFormat('d F Y') }}
+                            {{ $periodeAwal ? $periodeAwal->translatedFormat('d F Y') : 'N/A' }} –
+                            {{ $periodeAkhir ? $periodeAkhir->translatedFormat('d F Y') : 'N/A' }}
                             <i class="bi bi-calendar-range ms-1"></i>
                         </button>
 
@@ -346,7 +394,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 <div class="card-body">
                     <ul class="mb-0">
                         <li class="mb-2">
-                            <strong>U1 – U9</strong> = Unsur-Unsur Pelayanan
+                            <strong>{{ implode(', ', array_keys($unsurMapping)) }}</strong> = Unsur-Unsur Pelayanan
                         </li>
 
                         <li class="mb-2">
@@ -366,7 +414,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         <li>
                             <strong>IKM Unit Pelayanan</strong><br>
                             <span class="text-muted">
-                                Jumlah Rata-Rata Tertimbang dari 9 unsur ÷ 9
+                                Jumlah Rata-Rata Tertimbang dari {{ count($unsurMapping) }} unsur ÷ {{ count($unsurMapping) }}
                             </span>
                         </li>
                     </ul>
@@ -409,32 +457,18 @@ document.addEventListener("DOMContentLoaded", function() {
                     <table class="table table-bordered mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>No.</th>
+                                <th style="width: 80px;">No.</th>
                                 <th>Unsur Pelayanan</th>
-                                <th>Nilai Rata-rata</th>
+                                <th style="width: 150px;">Nilai Rata-rata</th>
                             </tr>
                         </thead>
                         <tbody>
 
-                            @php
-                                $unsurLabels = [
-                                    'U1' => 'Persyaratan pelayanan',
-                                    'U2' => 'Prosedur pelayanan',
-                                    'U3' => 'Waktu pelayanan',
-                                    'U4' => 'Biaya / tarif pelayanan',
-                                    'U5' => 'Produk pelayanan',
-                                    'U6' => 'Kompetensi petugas pelayanan',
-                                    'U7' => 'Perilaku petugas pelayanan',
-                                    'U8' => 'Sarana dan prasarana',
-                                    'U9' => 'Penanganan pengaduan layanan',
-                                ];
-                            @endphp
-
-                            @foreach($unsurLabels as $kode => $label)
+                            @foreach($unsurMapping as $kodeUnsur => $labelUnsur)
                             <tr>
-                                <td>{{ $kode }}</td>
-                                <td>{{ $label }}</td>
-                                <td>{{ $rataPerUnsur[$kode] ?? '-' }}</td>
+                                <td>{{ $kodeUnsur }}</td>
+                                <td>{{ Str::limit($labelUnsur, 100) }}</td>
+                                <td>{{ $rataPerUnsur[$kodeUnsur] ?? '-' }}</td>
                             </tr>
                             @endforeach
 
@@ -475,7 +509,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             <input type="date"
                                 name="awal"
                                 class="form-control"
-                                value="{{ request('awal') ?? $periodeAwal->format('Y-m-d') }}">
+                                value="{{ request('awal') ?? ($periodeAwal ? $periodeAwal->format('Y-m-d') : '') }}">
                         </div>
 
                         <div class="mb-3">
@@ -483,7 +517,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             <input type="date"
                                 name="akhir"
                                 class="form-control"
-                                value="{{ request('akhir') ?? $periodeAkhir->format('Y-m-d') }}">
+                                value="{{ request('akhir') ?? ($periodeAkhir ? $periodeAkhir->format('Y-m-d') : '') }}">
                         </div>
 
                     </div>
