@@ -4,6 +4,15 @@
 <h2 class="fw-bold">Preview Template Survey</h2>
 <p class="text-muted">Preview template beserta pertanyaan dan jawaban</p>
 
+<div class="mb-3">
+    <a href="{{ route('admin.survey-templates.index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Kembali
+    </a>
+    <a href="{{ route('admin.survey-questions.index', $template->id) }}" class="btn btn-primary">
+        <i class="bi bi-pencil-square"></i> Kelola Pertanyaan
+    </a>
+</div>
+
 <div class="card mb-3">
     <div class="card-header bg-primary text-white">
         <h5 class="mb-0">{{ $template->nama }}</h5>
@@ -53,6 +62,10 @@
                             @if($question->is_text_input)
                                 <span class="badge bg-success">Text Input</span>
                             @endif
+
+                            @if($question->unsur_pelayanan)
+                                <p class="mb-1 mt-2"><strong>Unsur Pelayanan:</strong> {{ $question->unsur_pelayanan }}</p>
+                            @endif
                         </div>
                     </div>
 
@@ -99,13 +112,4 @@
     Template ini belum memiliki pertanyaan.
 </div>
 @endif
-
-<div class="mt-3">
-    <a href="{{ route('admin.survey-templates.index') }}" class="btn btn-secondary">
-        <i class="bi bi-arrow-left"></i> Kembali
-    </a>
-    <a href="{{ route('admin.survey-questions.index', $template->id) }}" class="btn btn-primary">
-        <i class="bi bi-pencil-square"></i> Kelola Pertanyaan
-    </a>
-</div>
 @endsection

@@ -14,12 +14,18 @@
     <div class="card-body">
         <div class="row mb-3">
             <div class="col-md-8">
-                <label class="form-label">Pertanyaan <span class="text-danger">*</span></label>
-                <textarea class="form-control question-text" rows="2" required>{{ $question->pertanyaan_text }}</textarea>
+                <label class="form-label fw-bold">Pertanyaan <span class="text-danger">*</span></label>
+                <textarea class="form-control question-text" rows="2" required placeholder="Tuliskan pertanyaan survey...">{{ $question->pertanyaan_text }}</textarea>
             </div>
             <div class="col-md-4">
-                <label class="form-label">Kode Unsur (opsional)</label>
-                <input type="text" class="form-control kode-unsur" placeholder="U1, U2, dll" value="{{ $question->kode_unsur }}">
+                <label class="form-label fw-bold">Kode Unsur</label>
+                <input type="text" class="form-control bg-light kode-unsur" placeholder="Auto-generated" value="{{ $question->kode_unsur }}" readonly>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label class="form-label fw-bold">Unsur Pelayanan <span class="text-danger">*</span></label>
+                <input type="text" class="form-control unsur-pelayanan" required placeholder="Contoh: Persyaratan pelayanan, Prosedur pelayanan, dll" value="{{ $question->unsur_pelayanan ?? '' }}">
             </div>
         </div>
         <div class="row mb-3">
@@ -60,11 +66,6 @@
                     </div>
                 @endforeach
             </div>
-        </div>
-        <div class="mt-3">
-            <button type="button" class="btn btn-primary btn-sm" onclick="saveQuestion('{{ $question->id }}')">
-                <i class="bi bi-save"></i> Simpan Pertanyaan
-            </button>
         </div>
     </div>
 </div>

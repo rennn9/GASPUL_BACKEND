@@ -11,11 +11,16 @@ use Illuminate\Support\Facades\DB;
 class SurveyTemplateController extends Controller
 {
     /**
-     * List semua template survey
+     * List semua template survey (Web Admin View)
      */
-    public function index()
+    public function index(Request $request)
     {
         Log::info('SurveyTemplateController@index called');
+
+        // Check if this is an API request
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return $this->apiIndex();
+        }
 
         $templates = SurveyTemplate::with('createdBy')
             ->orderBy('versi', 'desc')
@@ -24,6 +29,109 @@ class SurveyTemplateController extends Controller
         Log::info('Survey templates retrieved', ['count' => $templates->count()]);
 
         return view('admin.survey-template.index', compact('templates'));
+    }
+
+    /**
+     * API: Get all templates (JSON)
+     */
+    public function apiIndex()
+    {
+        Log::info('SurveyTemplateController@apiIndex called (API)');
+
+        $templates = SurveyTemplate::orderBy('versi', 'desc')->get();
+
+        Log::info('API: Survey templates retrieved', ['count' => $templates->count()]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $templates,
+        ]);
+    }
+
+    /**
+     * API: Get active template with questions and options (JSON)
+     */
+    public function getActiveTemplate()
+    {
+        Log::info('SurveyTemplateController@getActiveTemplate called (API)');
+
+        $template = SurveyTemplate::with(['questions' => function($query) {
+                $query->orderBy('urutan');
+            }, 'questions.options' => function($query) {
+                $query->orderBy('urutan');
+            }])
+            ->where('is_active', true)
+            ->first();
+
+        if (!$template) {
+            Log::warning('No active template found');
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada template survey yang aktif',
+                'data' => null,
+            ], 404);
+        }
+
+        Log::info('Active template found', [
+            'id' => $template->id,
+            'nama' => $template->nama,
+            'questions_count' => $template->questions->count()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $template,
+        ]);
+    }
+
+    /**
+     * API: Get specific template by ID with questions and options (JSON)
+     */
+    public function show(Request $request, $id)
+    {
+        Log::info('SurveyTemplateController@show called', ['id' => $id]);
+
+        // Check if this is an API request
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return $this->apiShow($id);
+        }
+
+        // Web view logic here if needed
+        $template = SurveyTemplate::findOrFail($id);
+        return view('admin.survey-template.show', compact('template'));
+    }
+
+    /**
+     * API: Get specific template (JSON)
+     */
+    private function apiShow($id)
+    {
+        $template = SurveyTemplate::with(['questions' => function($query) {
+                $query->orderBy('urutan');
+            }, 'questions.options' => function($query) {
+                $query->orderBy('urutan');
+            }])
+            ->find($id);
+
+        if (!$template) {
+            Log::warning('Template not found', ['id' => $id]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Template tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        Log::info('Template found', [
+            'id' => $template->id,
+            'nama' => $template->nama,
+            'questions_count' => $template->questions->count()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $template,
+        ]);
     }
 
     /**
@@ -315,6 +423,7 @@ class SurveyTemplateController extends Controller
             foreach ($surveyTemplate->questions as $question) {
                 $newQuestion = $newTemplate->questions()->create([
                     'pertanyaan_text' => $question->pertanyaan_text,
+                    'unsur_pelayanan' => $question->unsur_pelayanan,
                     'kode_unsur' => $question->kode_unsur,
                     'urutan' => $question->urutan,
                     'is_required' => $question->is_required,

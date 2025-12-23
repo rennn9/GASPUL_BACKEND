@@ -32,6 +32,15 @@ Route::get('/survey/questions', [SurveyApiController::class, 'getQuestions']);
 Route::post('/survey', [SurveyController::class, 'store']);
 
 // ===============================
+// 📋 RUTE SURVEY TEMPLATES (Dynamic Survey)
+// ===============================
+use App\Http\Controllers\SurveyTemplateController;
+
+Route::get('/survey-templates', [SurveyTemplateController::class, 'index']);
+Route::get('/survey-templates/active', [SurveyTemplateController::class, 'getActiveTemplate']);
+Route::get('/survey-templates/{id}', [SurveyTemplateController::class, 'show']);
+
+// ===============================
 // 🕓 WAKTU SERVER
 // ===============================
 Route::get('/server-time', function () {

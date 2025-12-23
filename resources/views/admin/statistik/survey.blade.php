@@ -1,6 +1,21 @@
     @extends('admin.layout')
 
     @section('content')
+    @php
+        // Helper function untuk format angka tanpa trailing zeros
+        function formatNumber($number, $maxDecimals = 3) {
+            // Gunakan sprintf untuk menghindari masalah locale
+            // Format ke string dengan max decimals
+            $formatted = sprintf("%.{$maxDecimals}f", $number);
+            // Hilangkan trailing zeros
+            $formatted = rtrim($formatted, '0');
+            // Hilangkan decimal point jika tidak ada angka di belakangnya
+            $formatted = rtrim($formatted, '.');
+            // Jika kosong, return '0'
+            return $formatted === '' ? '0' : $formatted;
+        }
+    @endphp
+
     <h2 class="fw-bold mb-4">Statistik Survey (IKM)</h2>
 
     {{-- Navigasi Tab --}}
@@ -327,37 +342,44 @@ document.addEventListener("DOMContentLoaded", function() {
 <tfoot>
 
     <tr class="table-secondary fw-bold">
-        <td>Jumlah Nilai / Unsur</td>
+        <td>Jumlah Nilai per Unsur</td>
         @foreach($jumlahPerUnsur as $val)
-            <td>{{ $val }}</td>
+            <td>{{ formatNumber($val) }}</td>
         @endforeach
     </tr>
 
     <tr class="table-info fw-bold">
-        <td>Rata-Rata / Unsur</td>
-        @foreach($rata2PerUnsur as $val)
-            <td>{{ number_format($val, 2) }}</td>
+        <td>NRR per Unsur (Nilai Rata-Rata)</td>
+        @foreach($nrrPerUnsur as $val)
+            <td>{{ formatNumber($val) }}</td>
+        @endforeach
+    </tr>
+
+    <tr class="table-light fw-bold">
+        <td>Bobot per Unsur</td>
+        @foreach($bobotPerUnsur as $val)
+            <td>{{ formatNumber($val) }}</td>
         @endforeach
     </tr>
 
     <tr class="table-warning fw-bold">
-        <td>Rata-Rata Tertimbang / Unsur</td>
-        @foreach($rataTertimbangPerUnsur as $val)
-            <td>{{ number_format($val, 2) }}</td>
+        <td>NRR Tertimbang per Unsur</td>
+        @foreach($nrrTertimbangPerUnsur as $val)
+            <td>{{ formatNumber($val) }}</td>
         @endforeach
     </tr>
 
     <tr class="table-primary fw-bold">
-        <td>Jumlah Rata-Rata Tertimbang</td>
-        <td colspan="{{ count($rataTertimbangPerUnsur) }}">
-            {{ number_format($totalWeighted, 2) }}
+        <td>Total NRR Tertimbang</td>
+        <td colspan="{{ count($nrrTertimbangPerUnsur) }}">
+            {{ formatNumber($totalNrrTertimbang) }}
         </td>
     </tr>
 
     <tr class="table-success fw-bold">
-        <td>IKM Unit Pelayanan</td>
+        <td>IKM Unit Pelayanan (Total NRR Tertimbang × 25)</td>
         <td colspan="{{ count($rataPerUnsur) }}">
-            {{ number_format($ikmTotal, 2) }}
+            {{ formatNumber($ikmTotal, 2) }}
         </td>
     </tr>
 
@@ -389,33 +411,50 @@ document.addEventListener("DOMContentLoaded", function() {
             <!-- KETERANGAN -->
             <div class="card shadow-sm mb-3">
                 <div class="card-header bg-secondary text-white fw-bold">
-                    Keterangan
+                    Keterangan (Sesuai Permenpan RB No. 14 Tahun 2017)
                 </div>
                 <div class="card-body">
-                    <ul class="mb-0">
+                    <ul class="mb-0 small">
                         <li class="mb-2">
-                            <strong>{{ implode(', ', array_keys($unsurMapping)) }}</strong> = Unsur-Unsur Pelayanan
+                            <strong>Unsur Pelayanan:</strong> {{ count($unsurMapping) }} unsur
+                            ({{ implode(', ', array_keys($unsurMapping)) }})
                         </li>
 
                         <li class="mb-2">
-                            <strong>Nilai Rata-Rata per Unsur</strong><br>
-                            <span class="text-muted">
-                                (Jumlah seluruh nilai unsur) ÷ (Jumlah responden)
-                            </span>
+                            <strong>NRR per Unsur (Nilai Rata-Rata):</strong><br>
+                            <code class="text-muted">
+                                NRR = Σ Nilai per Unsur ÷ Jumlah Responden
+                            </code>
                         </li>
 
                         <li class="mb-2">
-                            <strong>Nilai Rata-Rata Tertimbang</strong><br>
-                            <span class="text-muted">
-                                Nilai Rata-Rata × 25 (Konversi sesuai pedoman IKM)
-                            </span>
+                            <strong>Bobot per Unsur:</strong><br>
+                            <code class="text-muted">
+                                Bobot = 1 ÷ {{ count($unsurMapping) }} = {{ formatNumber($bobot ?? 0) }}
+                            </code><br>
+                            <span class="text-muted">(Bobot sama untuk semua unsur)</span>
+                        </li>
+
+                        <li class="mb-2">
+                            <strong>NRR Tertimbang per Unsur:</strong><br>
+                            <code class="text-muted">
+                                NRR Tertimbang = NRR per Unsur × Bobot
+                            </code>
+                        </li>
+
+                        <li class="mb-2">
+                            <strong>Total NRR Tertimbang:</strong><br>
+                            <code class="text-muted">
+                                Total = Σ (NRR Tertimbang semua unsur)
+                            </code>
                         </li>
 
                         <li>
-                            <strong>IKM Unit Pelayanan</strong><br>
-                            <span class="text-muted">
-                                Jumlah Rata-Rata Tertimbang dari {{ count($unsurMapping) }} unsur ÷ {{ count($unsurMapping) }}
-                            </span>
+                            <strong>IKM Unit Pelayanan:</strong><br>
+                            <code class="text-muted">
+                                IKM = Total NRR Tertimbang × 25
+                            </code><br>
+                            <span class="text-muted">(Konversi skala 1-4 menjadi 25-100)</span>
                         </li>
                     </ul>
                 </div>
@@ -450,29 +489,47 @@ document.addEventListener("DOMContentLoaded", function() {
         <div class="col-md-6 mb-3">
             <div class="card shadow-sm">
                 <div class="card-header bg-success text-white fw-bold">
-                    Nilai Rata-rata Per Unsur
+                    Nilai Rata-rata Per Unsur (NRR)
                 </div>
                 <div class="card-body">
 
-                    <table class="table table-bordered mb-0">
+                    <table class="table table-bordered mb-0 small">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 80px;">No.</th>
+                                <th style="width: 60px;">No.</th>
                                 <th>Unsur Pelayanan</th>
-                                <th style="width: 150px;">Nilai Rata-rata</th>
+                                <th style="width: 100px;">NRR</th>
+                                <th style="width: 100px;">Bobot</th>
+                                <th style="width: 100px;">NRR Tertimbang</th>
                             </tr>
                         </thead>
                         <tbody>
 
                             @foreach($unsurMapping as $kodeUnsur => $labelUnsur)
                             <tr>
-                                <td>{{ $kodeUnsur }}</td>
-                                <td>{{ Str::limit($labelUnsur, 100) }}</td>
-                                <td>{{ $rataPerUnsur[$kodeUnsur] ?? '-' }}</td>
+                                <td class="text-center">{{ $kodeUnsur }}</td>
+                                <td>{{ Str::limit($labelUnsur, 60) }}</td>
+                                <td class="text-end">{{ formatNumber($nrrPerUnsur[$kodeUnsur] ?? 0) }}</td>
+                                <td class="text-end">{{ formatNumber($bobotPerUnsur[$kodeUnsur] ?? 0) }}</td>
+                                <td class="text-end">{{ formatNumber($nrrTertimbangPerUnsur[$kodeUnsur] ?? 0) }}</td>
                             </tr>
                             @endforeach
 
                         </tbody>
+                        <tfoot class="table-light fw-bold">
+                            <tr>
+                                <td colspan="2" class="text-end">Total NRR Tertimbang:</td>
+                                <td colspan="3" class="text-end">{{ formatNumber($totalNrrTertimbang ?? 0) }}</td>
+                            </tr>
+                            <tr class="table-success">
+                                <td colspan="2" class="text-end">IKM (× 25):</td>
+                                <td colspan="3" class="text-end">{{ formatNumber($ikmTotal ?? 0, 2) }}</td>
+                            </tr>
+                            <tr class="table-info">
+                                <td colspan="2" class="text-end">Kategori:</td>
+                                <td colspan="3" class="text-end">{{ $mutuTotal ?? '-' }}</td>
+                            </tr>
+                        </tfoot>
                     </table>
 
                 </div>

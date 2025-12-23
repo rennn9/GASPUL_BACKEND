@@ -32,7 +32,7 @@ public static function generateTiket(Antrian $antrian, bool $isKonsultasi = fals
         $qrContent = json_encode([
             'nomor_antrian'  => $antrian->nomor_antrian,
             'bidang_layanan' => $antrian->bidang_layanan,
-            'tanggal_daftar' => Carbon::parse($antrian->tanggal_daftar)->toDateString(),
+            'tanggal_layanan' => Carbon::parse($antrian->tanggal_layanan)->toDateString(),
         ]);
 
         $qrBase64 = base64_encode(
@@ -47,7 +47,7 @@ public static function generateTiket(Antrian $antrian, bool $isKonsultasi = fals
         // Generate PDF
 $pdf = Pdf::loadView('admin.exports.tiket_pdf', [
     'nomor'         => $antrian->nomor_antrian,
-    'tanggal'       => Carbon::parse($antrian->tanggal_daftar)->translatedFormat('l, d/m/Y'),
+    'tanggal'       => Carbon::parse($antrian->tanggal_layanan)->translatedFormat('l, d/m/Y'),
     'bidang'        => $antrian->bidang_layanan,
     'layanan'       => $layananValue, // value perihal untuk konsultasi
     'isKonsultasi'  => $isKonsultasi, // <- kirim ke view
@@ -56,7 +56,7 @@ $pdf = Pdf::loadView('admin.exports.tiket_pdf', [
 
 
         // Simpan PDF
-        $safeDate = Carbon::parse($antrian->tanggal_daftar)->format('Y-m-d');
+        $safeDate = Carbon::parse($antrian->tanggal_layanan)->format('Y-m-d');
         $pdfFileName = "{$safeDate}-{$antrian->nomor_antrian}.pdf";
         $pdfPath = "{$tiketPath}/{$pdfFileName}";
 

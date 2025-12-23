@@ -42,6 +42,7 @@ class SurveyQuestionController extends Controller
         $validated = $request->validate([
             'survey_template_id' => 'required|exists:survey_templates,id',
             'pertanyaan_text' => 'required|string',
+            'unsur_pelayanan' => 'required|string|max:255',
             'kode_unsur' => 'nullable|string|max:10',
             'is_required' => 'nullable|boolean',
             'is_text_input' => 'nullable|boolean',
@@ -54,11 +55,14 @@ class SurveyQuestionController extends Controller
             $maxUrutan = SurveyQuestion::where('survey_template_id', $validated['survey_template_id'])
                 ->max('urutan') ?? 0;
 
+            $urutan = $maxUrutan + 1;
+
             $question = SurveyQuestion::create([
                 'survey_template_id' => $validated['survey_template_id'],
                 'pertanyaan_text' => $validated['pertanyaan_text'],
-                'kode_unsur' => $validated['kode_unsur'] ?? null,
-                'urutan' => $maxUrutan + 1,
+                'unsur_pelayanan' => $validated['unsur_pelayanan'],
+                'kode_unsur' => 'U' . $urutan, // Auto-generate based on urutan
+                'urutan' => $urutan,
                 'is_required' => $validated['is_required'] ?? true,
                 'is_text_input' => $validated['is_text_input'] ?? false,
             ]);
@@ -102,6 +106,7 @@ class SurveyQuestionController extends Controller
 
         $validated = $request->validate([
             'pertanyaan_text' => 'required|string',
+            'unsur_pelayanan' => 'required|string|max:255',
             'kode_unsur' => 'nullable|string|max:10',
             'is_required' => 'nullable|boolean',
             'is_text_input' => 'nullable|boolean',
@@ -112,7 +117,8 @@ class SurveyQuestionController extends Controller
 
             $question->update([
                 'pertanyaan_text' => $validated['pertanyaan_text'],
-                'kode_unsur' => $validated['kode_unsur'] ?? null,
+                'unsur_pelayanan' => $validated['unsur_pelayanan'],
+                'kode_unsur' => 'U' . $question->urutan, // Auto-generate based on current urutan
                 'is_required' => $validated['is_required'] ?? true,
                 'is_text_input' => $validated['is_text_input'] ?? false,
             ]);
@@ -169,10 +175,19 @@ class SurveyQuestionController extends Controller
             // Hapus question (cascade ke options)
             $question->delete();
 
-            // Reorder urutan pertanyaan lain
-            SurveyQuestion::where('survey_template_id', $templateId)
+            // Reorder urutan pertanyaan lain dan update kode_unsur
+            $questionsToUpdate = SurveyQuestion::where('survey_template_id', $templateId)
                 ->where('urutan', '>', $deletedUrutan)
-                ->decrement('urutan');
+                ->orderBy('urutan')
+                ->get();
+
+            foreach ($questionsToUpdate as $q) {
+                $newUrutan = $q->urutan - 1;
+                $q->update([
+                    'urutan' => $newUrutan,
+                    'kode_unsur' => 'U' . $newUrutan
+                ]);
+            }
 
             DB::commit();
 
@@ -215,7 +230,10 @@ class SurveyQuestionController extends Controller
         try {
             foreach ($validated['orders'] as $order) {
                 SurveyQuestion::where('id', $order['id'])
-                    ->update(['urutan' => $order['urutan']]);
+                    ->update([
+                        'urutan' => $order['urutan'],
+                        'kode_unsur' => 'U' . $order['urutan'] // Update kode_unsur based on new urutan
+                    ]);
             }
 
             DB::commit();

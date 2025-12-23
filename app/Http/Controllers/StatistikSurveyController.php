@@ -282,35 +282,49 @@ class StatistikSurveyController extends Controller
         }
 
         // ============================================
-        // 5. Hitung rata-rata per unsur
+        // 5. Hitung rata-rata per unsur (NRR per unsur)
         // ============================================
         $rataPerUnsur = [];
         foreach ($unsurNilai as $u => $nilaiArray) {
-            $rataPerUnsur[$u] = round(array_sum($nilaiArray) / count($nilaiArray), 2);
+            $rataPerUnsur[$u] = array_sum($nilaiArray) / count($nilaiArray);
         }
 
         // ============================================
-        // 6. Hitung tabel per unsur
+        // 6. Hitung tabel per unsur (sesuai Permenpan 14/2017)
         // ============================================
-        $jumlahPerUnsur = [];
-        $rata2PerUnsur = [];
-        $rataTertimbangPerUnsur = [];
-        $totalWeighted = 0;
+        $jumlahPerUnsur = [];           // Total nilai per unsur
+        $nrrPerUnsur = [];              // Nilai Rata-Rata per unsur
+        $bobotPerUnsur = [];            // Bobot per unsur (1/jumlah unsur)
+        $nrrTertimbangPerUnsur = [];    // NRR Tertimbang per unsur
 
-        foreach ($rataPerUnsur as $u => $avg) {
-            $jumlahPerUnsur[$u] = round($avg * $totalResponden, 2);
-            $rata2PerUnsur[$u] = round($avg, 2);
-            $rataTertimbangPerUnsur[$u] = round($avg * 25, 2);
-            $totalWeighted += ($avg * 25);
+        $jumlahUnsur = count($rataPerUnsur);
+        $bobot = 1 / $jumlahUnsur;
+        $totalNrrTertimbang = 0;
+
+        foreach ($rataPerUnsur as $u => $nrr) {
+            // Total nilai per unsur = NRR × Jumlah Responden
+            $jumlahPerUnsur[$u] = $nrr * $totalResponden;
+
+            // NRR per unsur (sudah dihitung di atas)
+            $nrrPerUnsur[$u] = $nrr;
+
+            // Bobot per unsur (sama untuk semua unsur)
+            $bobotPerUnsur[$u] = $bobot;
+
+            // NRR Tertimbang = NRR × Bobot
+            $nrrTertimbangPerUnsur[$u] = $nrr * $bobot;
+
+            // Akumulasi untuk total NRR Tertimbang
+            $totalNrrTertimbang += ($nrr * $bobot);
         }
 
-        $totalWeighted = round($totalWeighted, 2);
-
         // ============================================
-        // 7. Hitung IKM Unit
+        // 7. Hitung IKM Unit Pelayanan
         // ============================================
-        $sumAvg = array_sum($rataPerUnsur);
-        $ikmUnit = round(($sumAvg / count($rataPerUnsur)) * 25, 2);
+        // IKM = Total NRR Tertimbang × 25
+        // atau
+        // IKM = (Σ NRR semua unsur / Jumlah Unsur) × 25
+        $ikmUnit = $totalNrrTertimbang * 25;
 
         // ============================================
         // 8. Tentukan kategori mutu
@@ -326,18 +340,27 @@ class StatistikSurveyController extends Controller
         // 9. Return ke view
         // ============================================
         return view('admin.statistik.survey', [
-            'rataPerUnsur'               => $rataPerUnsur,
-            'jumlahPerUnsur'             => $jumlahPerUnsur,
-            'rata2PerUnsur'              => $rata2PerUnsur,
-            'rataTertimbangPerUnsur'     => $rataTertimbangPerUnsur,
-            'totalWeighted'              => $totalWeighted,
-            'ikmTotal'                   => $ikmUnit,
-            'mutuTotal'                  => $kategori,
+            // Data per unsur
+            'rataPerUnsur'               => $rataPerUnsur,           // NRR per unsur (untuk display tabel responden)
+            'jumlahPerUnsur'             => $jumlahPerUnsur,         // Total nilai per unsur
+            'nrrPerUnsur'                => $nrrPerUnsur,            // NRR per unsur (sama dengan rataPerUnsur)
+            'bobotPerUnsur'              => $bobotPerUnsur,          // Bobot per unsur (1/jumlah unsur)
+            'nrrTertimbangPerUnsur'      => $nrrTertimbangPerUnsur,  // NRR Tertimbang per unsur
+
+            // Total dan IKM
+            'totalNrrTertimbang'         => $totalNrrTertimbang,     // Total NRR Tertimbang
+            'ikmTotal'                   => $ikmUnit,                // IKM Unit Pelayanan
+            'mutuTotal'                  => $kategori,               // Kategori mutu (A/B/C/D)
+
+            // Metadata
             'totalResponden'             => $totalResponden,
             'respondenData'              => $respondenData,
             'surveys'                    => $surveys,
             'periodeAwal'                => $awal,
             'periodeAkhir'               => $akhir,
+            'jumlahUnsur'                => $jumlahUnsur,
+            'bobot'                      => $bobot,
+
             // Template data
             'allTemplates'               => $allTemplates,
             'selectedTemplateId'         => $selectedTemplateId,

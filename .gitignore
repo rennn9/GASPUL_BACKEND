@@ -28,3 +28,9 @@ Thumbs.db
 
 # Generated PDF tickets
 public/tiket/*.pdf
+
+# Windows reserved filenames
+NUL
+CON
+PRN
+AUX

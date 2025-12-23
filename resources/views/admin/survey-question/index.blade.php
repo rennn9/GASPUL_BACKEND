@@ -1,7 +1,12 @@
 @extends('admin.layout')
 
 @section('content')
-<h2 class="fw-bold">Kelola Pertanyaan Survey</h2>
+<div class="d-flex align-items-center mb-2">
+    <a href="{{ route('admin.survey-templates.index') }}" class="btn btn-link text-dark p-0 me-2" title="Kembali ke Daftar Template">
+        <i class="bi bi-arrow-left" style="font-size: 1.5rem;"></i>
+    </a>
+    <h2 class="fw-bold mb-0">Kelola Pertanyaan Survey</h2>
+</div>
 <p class="text-muted">{{ $template->nama }} (v{{ $template->versi }})</p>
 
 @if(session('success'))
@@ -50,14 +55,101 @@
     </div>
 </div>
 
-<div class="mt-3">
-    <a href="{{ route('admin.survey-templates.index') }}" class="btn btn-secondary">
-        <i class="bi bi-arrow-left"></i> Kembali ke Daftar Template
+<!-- Floating Action Buttons - Berderet Horizontal -->
+<div class="fab-container">
+    <!-- FAB Preview Template (paling kiri dalam row) -->
+    <a href="{{ route('admin.survey-templates.preview', $template->id) }}"
+       class="btn btn-info fab-button fab-preview"
+       title="Preview Template">
+        <i class="bi bi-eye"></i>
     </a>
-    <a href="{{ route('admin.survey-templates.preview', $template->id) }}" class="btn btn-info">
-        <i class="bi bi-eye"></i> Preview Template
-    </a>
+
+    <!-- FAB Simpan Semua (tengah) -->
+    <button type="button"
+            class="btn btn-success fab-button fab-save-all"
+            onclick="saveAllQuestions()"
+            title="Simpan Semua Pertanyaan">
+        <i class="bi bi-save-fill"></i>
+    </button>
+
+    <!-- FAB Tambah Pertanyaan (paling kanan) -->
+    <button type="button"
+            class="btn btn-primary fab-button fab-add"
+            onclick="addNewQuestion()"
+            title="Tambah Pertanyaan">
+        <i class="bi bi-plus-lg"></i>
+    </button>
 </div>
+
+<!-- Lottie Loading Overlay -->
+<div id="lottie-loading-overlay" style="display: none;">
+    <div id="lottie-loading-container"></div>
+</div>
+
+<style>
+.fab-container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    gap: 15px;
+    z-index: 1000;
+}
+
+.fab-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    color: white;
+    text-decoration: none;
+}
+
+.fab-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    color: white;
+}
+
+.fab-button i {
+    font-size: 24px;
+}
+
+.fab-preview {
+    background-color: #17a2b8; /* info color */
+}
+
+.fab-save-all {
+    background-color: #28a745; /* success color */
+}
+
+.fab-add {
+    background-color: #007bff; /* primary color */
+}
+
+/* Lottie Loading Overlay - Fullscreen */
+#lottie-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+#lottie-loading-container {
+    width: 300px;
+    height: 300px;
+}
+</style>
 
 <!-- SortableJS CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -96,7 +188,8 @@ function addNewQuestion() {
 function createQuestionHtml(question, index) {
     const id = question ? question.id : `new-${index}`;
     const pertanyaan = question ? question.pertanyaan_text : '';
-    const kodeUnsur = question ? (question.kode_unsur || '') : '';
+    const unsurPelayanan = question ? (question.unsur_pelayanan || '') : '';
+    const kodeUnsur = question ? (question.kode_unsur || '') : `U${index}`;
     const isRequired = question ? question.is_required : true;
     const isTextInput = question ? question.is_text_input : false;
     const options = question ? question.options : [];
@@ -106,6 +199,7 @@ function createQuestionHtml(question, index) {
             <div class="card-header d-flex align-items-center gap-2">
                 <i class="bi bi-grip-vertical drag-handle" style="cursor: move;"></i>
                 <span class="badge bg-secondary">Pertanyaan ${index}</span>
+                ${kodeUnsur ? `<span class="badge bg-info">${kodeUnsur}</span>` : ''}
                 <div class="ms-auto">
                     <button type="button" class="btn btn-sm btn-danger" onclick="deleteQuestion('${id}')">
                         <i class="bi bi-trash"></i>
@@ -115,12 +209,18 @@ function createQuestionHtml(question, index) {
             <div class="card-body">
                 <div class="row mb-3">
                     <div class="col-md-8">
-                        <label class="form-label">Pertanyaan <span class="text-danger">*</span></label>
-                        <textarea class="form-control question-text" rows="2" required>${pertanyaan}</textarea>
+                        <label class="form-label fw-bold">Pertanyaan <span class="text-danger">*</span></label>
+                        <textarea class="form-control question-text" rows="2" required placeholder="Tuliskan pertanyaan survey...">${pertanyaan}</textarea>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Kode Unsur (opsional)</label>
-                        <input type="text" class="form-control kode-unsur" placeholder="U1, U2, dll" value="${kodeUnsur}">
+                        <label class="form-label fw-bold">Kode Unsur</label>
+                        <input type="text" class="form-control bg-light kode-unsur" placeholder="Auto-generated" value="${kodeUnsur}" readonly>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">Unsur Pelayanan <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control unsur-pelayanan" required placeholder="Contoh: Persyaratan pelayanan, Prosedur pelayanan, dll" value="${unsurPelayanan}">
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -206,6 +306,7 @@ function addOption(questionId) {
 async function saveQuestion(questionId) {
     const questionCard = document.querySelector(`[data-question-id="${questionId}"]`);
     const pertanyaan = questionCard.querySelector('.question-text').value.trim();
+    const unsurPelayanan = questionCard.querySelector('.unsur-pelayanan').value.trim();
     const kodeUnsur = questionCard.querySelector('.kode-unsur').value.trim();
     const isRequired = questionCard.querySelector('.is-required').checked;
     const isTextInput = questionCard.querySelector('.is-text-input').checked;
@@ -215,9 +316,15 @@ async function saveQuestion(questionId) {
         return;
     }
 
+    if (!unsurPelayanan) {
+        alert('Unsur Pelayanan harus diisi!');
+        return;
+    }
+
     const data = {
         survey_template_id: TEMPLATE_ID,
         pertanyaan_text: pertanyaan,
+        unsur_pelayanan: unsurPelayanan,
         kode_unsur: kodeUnsur || null,
         is_required: isRequired,
         is_text_input: isTextInput,
@@ -301,6 +408,132 @@ async function saveAllOptions(questionId, questionCard) {
             },
             body: JSON.stringify(data)
         });
+    }
+}
+
+// Save all questions at once
+async function saveAllQuestions() {
+    const questionCards = document.querySelectorAll('.question-item');
+
+    if (questionCards.length === 0) {
+        alert('Tidak ada pertanyaan untuk disimpan.');
+        return;
+    }
+
+    let savedCount = 0;
+    let errorCount = 0;
+    const errors = [];
+
+    // Confirm before saving all
+    if (!confirm(`Simpan semua ${questionCards.length} pertanyaan?`)) {
+        return;
+    }
+
+    // Disable button to prevent double-click
+    const saveButton = document.querySelector('.fab-save-all');
+    saveButton.disabled = true;
+
+    // Show fullscreen Lottie loading overlay
+    const overlay = document.getElementById('lottie-loading-overlay');
+    overlay.style.display = 'flex';
+    const lottieAnimation = lottie.loadAnimation({
+        container: document.getElementById('lottie-loading-container'),
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        path: '/lottie/Speed.json'
+    });
+
+    // Save each question
+    for (const questionCard of questionCards) {
+        const questionId = questionCard.dataset.questionId;
+
+        try {
+            const pertanyaan = questionCard.querySelector('.question-text').value.trim();
+            const unsurPelayanan = questionCard.querySelector('.unsur-pelayanan').value.trim();
+            const kodeUnsur = questionCard.querySelector('.kode-unsur').value.trim();
+            const isRequired = questionCard.querySelector('.is-required').checked;
+            const isTextInput = questionCard.querySelector('.is-text-input').checked;
+
+            // Validate
+            if (!pertanyaan) {
+                errors.push(`Pertanyaan ${questionCard.querySelector('.badge').textContent} harus diisi`);
+                errorCount++;
+                continue;
+            }
+
+            if (!unsurPelayanan) {
+                errors.push(`Unsur Pelayanan ${questionCard.querySelector('.badge').textContent} harus diisi`);
+                errorCount++;
+                continue;
+            }
+
+            const data = {
+                survey_template_id: TEMPLATE_ID,
+                pertanyaan_text: pertanyaan,
+                unsur_pelayanan: unsurPelayanan,
+                kode_unsur: kodeUnsur || null,
+                is_required: isRequired,
+                is_text_input: isTextInput,
+                _token: '{{ csrf_token() }}'
+            };
+
+            const isNew = questionId.toString().startsWith('new-');
+            const url = isNew
+                ? '{{ route("admin.survey-questions.store") }}'
+                : `/admin/survey-questions/${questionId}`;
+
+            if (!isNew) {
+                data._method = 'PUT';
+            }
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                if (isNew) {
+                    questionCard.dataset.questionId = result.data.id;
+                }
+
+                // Save options
+                if (!isTextInput) {
+                    await saveAllOptions(result.data.id, questionCard);
+                }
+
+                savedCount++;
+            } else {
+                errors.push(`Error: ${result.message}`);
+                errorCount++;
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            errors.push(`Error saving question: ${error.message}`);
+            errorCount++;
+        }
+    }
+
+    // Hide overlay and destroy Lottie animation FIRST
+    overlay.style.display = 'none';
+    if (lottieAnimation) {
+        lottieAnimation.destroy();
+    }
+    saveButton.disabled = false;
+
+    // Show result AFTER overlay is hidden
+    if (errorCount === 0) {
+        alert(`✅ Berhasil menyimpan semua ${savedCount} pertanyaan!`);
+        location.reload(); // Reload to refresh kode_unsur and urutan
+    } else {
+        alert(`⚠️ Selesai dengan ${savedCount} berhasil, ${errorCount} gagal.\n\nError:\n${errors.join('\n')}`);
     }
 }
 

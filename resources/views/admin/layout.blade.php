@@ -556,5 +556,8 @@ window.addEventListener('load', () => {
 window.addEventListener('resize', updateScrollIndicators);
 </script>
 
+<!-- Lottie Web for animations -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+
 </body>
 </html>
